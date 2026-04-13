@@ -3,6 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import './NavbarStyles.css';
+import { useAuth } from '../context/AuthContext';
+import { ProfileDropdown } from './ProfileDropdown';
 // import tccLogo from '../assets/images/logo/favicon/the tcc.png';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -17,6 +19,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuToggle, isMenuOpen }) => {
   // const brandRef = useRef<HTMLDivElement>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
+  const { user, setShowLoginModal } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -89,14 +92,26 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuToggle, isMenuOpen }) => {
         </div>
 
         <div className="nav-right">
-          <Link
-            to="/join"
-            className="nav-cta"
-            style={{ display: 'inline-block' }}
-          >
-            <span className="nav-cta-text">Join Mission</span>
-            <div className="nav-cta-bg"></div>
-          </Link>
+          {!user ? (
+            <>
+              <button 
+                className="nav-login-btn"
+                onClick={() => setShowLoginModal(true)}
+              >
+                Login
+              </button>
+              <Link
+                to="/join"
+                className="nav-cta hidden-on-mobile"
+                style={{ display: 'inline-block' }}
+              >
+                <span className="nav-cta-text">Join Mission</span>
+                <div className="nav-cta-bg"></div>
+              </Link>
+            </>
+          ) : (
+            <ProfileDropdown />
+          )}
 
           <div
             className={`hamburger ${isMenuOpen ? 'hamburger--active' : ''}`}

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import SplitType from 'split-type';
+import { useAuth } from '../context/AuthContext';
 import { jobsData } from '../data/jobsData';
 import { createSplitType, revertSplitType, wrapWordsForReveal } from '../utils/splitTypeHelper';
 
@@ -11,6 +12,7 @@ gsap.registerPlugin(ScrollTrigger);
 export const Jobs: React.FC = () => {
   const sectionRef = useRef<HTMLElement>(null);
   const splitInstancesRef = useRef<(SplitType | null)[]>([]);
+  const { user, setShowLoginModal } = useAuth();
 
   useEffect(() => {
     let ctx: gsap.Context;
@@ -122,7 +124,19 @@ export const Jobs: React.FC = () => {
               </div>
               <div className="job-footer">
                 <span className="job-deadline mono-text">{job.deadline}</span>
-                <a href={job.applyLink} className="job-apply-btn magnetic" data-strength="20">
+                <a 
+                  href={user ? job.applyLink : '#'} 
+                  onClick={(e) => {
+                    if (!user) {
+                      e.preventDefault();
+                      setShowLoginModal(true);
+                    }
+                  }}
+                  target={user ? "_blank" : undefined}
+                  rel={user ? "noopener noreferrer" : undefined}
+                  className="job-apply-btn magnetic" 
+                  data-strength="20"
+                >
                   APPLY →
                 </a>
               </div>

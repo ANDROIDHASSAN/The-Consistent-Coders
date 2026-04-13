@@ -1,6 +1,7 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import mongoose from 'mongoose';
 
 // Load environment variables
 dotenv.config();
@@ -18,9 +19,15 @@ app.get('/api/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'success', message: 'API is healthy running' });
 });
 
+// Database connection
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/consistent-coders';
+mongoose.connect(MONGO_URI)
+  .then(() => console.log('Connected to MongoDB'))
+  .catch(err => console.error('MongoDB connection error:', err));
+
 // Import API routes here when ready
-// import userRoutes from './api/routes/user.routes';
-// app.use('/api/users', userRoutes);
+import authRoutes from './api/routes/auth.routes';
+app.use('/api/auth', authRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -35,3 +42,4 @@ if (!process.env.VERCEL) {
 
 // Export app for Vercel Serverless Functions
 export default app;
+// Force nodemon restart

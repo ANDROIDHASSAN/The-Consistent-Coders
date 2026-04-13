@@ -17,10 +17,101 @@ import { ContributorsPage } from './pages/ContributorsPage';
 import { JobsPage } from './pages/JobsPage';
 import { ContactPage } from './pages/ContactPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { ProfilePage } from './pages/ProfilePage';
+import { SettingsPage } from './pages/SettingsPage';
 import { initMobileOptimizations } from './utils/mobileOptimizations';
 import './App.css';
 import './responsive.css';
 import './hamburger-fix.css';
+
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { GoogleLoginModal } from './components/GoogleLoginModal';
+
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, login } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const handleSuccess = async (credentialResponse: any) => {
+    try {
+      setIsLoading(true);
+      setErrorMsg('');
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const response = await fetch(`${API_URL}/api/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: credentialResponse.credential }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      
+      const data = await response.json();
+      if (response.ok) {
+        login(data.token, data.user);
+      } else {
+        setErrorMsg(data.error || 'Login failed. Please try again.');
+      }
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+         setErrorMsg('Database connection timeout. Please check your backend MongoDB Atlas IP whitelist.');
+      } else {
+         setErrorMsg('Network error. Ensure backend is running.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!user) {
+    return (
+      <div className="locked-page-wrapper" style={{ position: 'relative', overflow: 'hidden', height: '100vh' }}>
+        <div className="locked-content-blurred" style={{ filter: 'blur(12px)', pointerEvents: 'none', userSelect: 'none', opacity: 0.3, transition: 'all 0.5s ease', height: '100vh', overflow: 'hidden' }}>
+          {children}
+        </div>
+        <div className="locked-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 40 }}>
+          <div className="locked-modal glass-card" style={{ padding: '3rem', textAlign: 'center', borderRadius: '16px', border: '1px solid rgba(204, 255, 0, 0.15)', background: 'rgba(10, 10, 10, 0.7)', backdropFilter: 'blur(20px)', maxWidth: '420px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
+            <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'center' }}>
+              <svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </div>
+            <h2 className="serif-text" style={{ fontSize: '2rem', marginBottom: '1rem', color: '#fff' }}>Access Restricted</h2>
+            <p className="mono-text" style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '2.5rem', lineHeight: '1.6' }}>
+              Thanks for visiting The Consistent Coders! To view this restricted content and track your progress, you must sign in.
+            </p>
+            
+            {errorMsg && <div style={{ color: '#ff4d4d', fontSize: '0.85rem', marginBottom: '1.5rem', background: 'rgba(255, 77, 77, 0.1)', padding: '0.5rem', borderRadius: '4px', border: '1px solid rgba(255, 77, 77, 0.3)' }}>{errorMsg}</div>}
+            
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
+              {isLoading ? (
+                <div style={{ color: 'var(--color-accent)', fontFamily: 'var(--font-mono)' }}>Authenticating...</div>
+              ) : (
+                <div className="google-btn-wrapper">
+                  <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || '364464601188-f3a18rieechu74lmqbioiui8sjb3lsbc.apps.googleusercontent.com'}>
+                    <GoogleLogin
+                      onSuccess={handleSuccess}
+                      onError={() => setErrorMsg('Google Login Failed locally')}
+                      useOneTap
+                      theme="filled_black"
+                      text="continue_with"
+                    />
+                  </GoogleOAuthProvider>
+                </div>
+              )}
+            </div>
+            
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return <>{children}</>;
+};
 
 // Import GSAP and plugins
 import gsap from 'gsap';
@@ -255,10 +346,12 @@ function AppContent() {
               <Route path="/learn" element={<LearnPage />} />
               <Route path="/build" element={<BuildPage />} />
               <Route path="/join" element={<JoinPage />} />
-              <Route path="/tasks" element={<TasksPage />} />
+              <Route path="/tasks" element={<ProtectedRoute><TasksPage /></ProtectedRoute>} />
               <Route path="/contributors" element={<ContributorsPage />} />
               <Route path="/jobs" element={<JobsPage />} />
               <Route path="/contact" element={<ContactPage />} />
+              <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </div>
@@ -269,13 +362,19 @@ function AppContent() {
 }
 
 function App() {
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '364464601188-f3a18rieechu74lmqbioiui8sjb3lsbc.apps.googleusercontent.com';
   return (
     <ErrorBoundary>
-      <Router>
-        <BarbaWrapper>
-          <AppContent />
-        </BarbaWrapper>
-      </Router>
+      <GoogleOAuthProvider clientId={clientId}>
+        <AuthProvider>
+          <Router>
+            <BarbaWrapper>
+              <AppContent />
+              <GoogleLoginModal />
+            </BarbaWrapper>
+          </Router>
+        </AuthProvider>
+      </GoogleOAuthProvider>
     </ErrorBoundary>
   );
 }
