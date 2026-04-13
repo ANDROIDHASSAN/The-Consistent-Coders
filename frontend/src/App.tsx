@@ -92,15 +92,13 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
                 <div style={{ color: 'var(--color-accent)', fontFamily: 'var(--font-mono)' }}>Authenticating...</div>
               ) : (
                 <div className="google-btn-wrapper">
-                  <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || '364464601188-f3a18rieechu74lmqbioiui8sjb3lsbc.apps.googleusercontent.com'}>
-                    <GoogleLogin
-                      onSuccess={handleSuccess}
-                      onError={() => setErrorMsg('Google Login Failed locally')}
-                      useOneTap
-                      theme="filled_black"
-                      text="continue_with"
-                    />
-                  </GoogleOAuthProvider>
+                  <GoogleLogin
+                    onSuccess={handleSuccess}
+                    onError={() => setErrorMsg('Google Login Failed locally')}
+                    useOneTap
+                    theme="filled_black"
+                    text="continue_with"
+                  />
                 </div>
               )}
             </div>
