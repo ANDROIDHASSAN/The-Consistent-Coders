@@ -70,7 +70,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuToggle, isMenuOpen }) => {
     { href: '/', label: 'Home' },
     { href: '/learn', label: 'Learn' },
     { href: '/build', label: 'Build' },
-    { href: '/tasks', label: 'Tasks' },
+    // Temporarily disabled - Tasks section under development
+    // { href: '/tasks', label: 'Tasks' },
     { href: '/contributors', label: 'Honor' },
     { href: '/jobs', label: 'Jobs' },
     { href: '/contact', label: 'Contact' },
