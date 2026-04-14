@@ -12,7 +12,8 @@ import { HomePage } from './pages/HomePage';
 import { LearnPage } from './pages/LearnPage';
 import { BuildPage } from './pages/BuildPage';
 import { JoinPage } from './pages/JoinPage';
-import { TasksPage } from './pages/TasksPage';
+// Temporarily disabled - Tasks section under development
+// import { TasksPage } from './pages/TasksPage';
 import { ContributorsPage } from './pages/ContributorsPage';
 import { JobsPage } from './pages/JobsPage';
 import { ContactPage } from './pages/ContactPage';
@@ -344,7 +345,8 @@ function AppContent() {
               <Route path="/learn" element={<LearnPage />} />
               <Route path="/build" element={<BuildPage />} />
               <Route path="/join" element={<JoinPage />} />
-              <Route path="/tasks" element={<ProtectedRoute><TasksPage /></ProtectedRoute>} />
+              {/* Temporarily disabled - Tasks section under development */}
+              {/* <Route path="/tasks" element={<ProtectedRoute><TasksPage /></ProtectedRoute>} /> */}
               <Route path="/contributors" element={<ContributorsPage />} />
               <Route path="/jobs" element={<JobsPage />} />
               <Route path="/contact" element={<ContactPage />} />
