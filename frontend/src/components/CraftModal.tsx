@@ -85,6 +85,19 @@ export const CraftModal: React.FC<CraftModalProps> = ({ isOpen, onClose, data })
               </div>
             </div>
           )}
+          {data.playlist && (
+            <div className="craft-modal-video" id="modalPlaylist">
+              <div className="video-aspect-ratio">
+                <iframe
+                  src={`https://www.youtube.com/embed/videoseries?list=${data.playlist}`}
+                  title="YouTube playlist player"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                ></iframe>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

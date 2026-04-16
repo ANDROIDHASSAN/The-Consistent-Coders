@@ -9,6 +9,7 @@ export interface CraftCard {
   pitfalls: string[];
   example: string;
   video?: string;
+  playlist?: string;
 }
 
 export interface JobCard {

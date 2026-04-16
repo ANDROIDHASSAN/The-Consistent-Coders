@@ -44,6 +44,7 @@ export const beginnerTrack: CraftCard[] = [
       'Use GitHub Issues to track your work',
     ],
     example: 'Estimated duration: 1–2 weeks. Resources: TCC Git Workshop recording, Atlassian Git tutorials, GitHub Skills. Next Step: Join a team project!',
+    video: 'r8QQOAicu8Y'
   },
 ];
 
@@ -61,6 +62,7 @@ export const intermediateTrack: CraftCard[] = [
       'Learn TypeScript basics alongside React',
     ],
     example: 'Estimated duration: 8–10 weeks. Resources: React Docs (new), TCC React series, Scrimba React course. Next Step: Full-Stack or Advanced React patterns.',
+    video: '3LRZRSIh_KE'
   },
   {
     id: 'lp-backend',
@@ -75,6 +77,7 @@ export const intermediateTrack: CraftCard[] = [
       'Practice API design with Postman before frontend integration',
     ],
     example: 'Estimated duration: 8–10 weeks. Resources: TCC Backend Series, The Odin Project, Node.js official docs. Next Step: Full-Stack project deployment.',
+    playlist: 'PLbtI3_MArDOkXRLxdMt1NOMtCS-84ibHH',
   },
   {
     id: 'lp-uiux',
@@ -89,6 +92,7 @@ export const intermediateTrack: CraftCard[] = [
       'Get a developer to code-review your design handoffs',
     ],
     example: 'Estimated duration: 6–8 weeks. Resources: TCC Design Track, Figma official tutorials, Refactoring UI book. Next Step: Design-to-code projects.',
+    video: 'truRwcI7-kg'
   },
   {
     id: 'lp-devops',
@@ -103,6 +107,7 @@ export const intermediateTrack: CraftCard[] = [
       'Set up basic monitoring (uptime checks) for every project',
     ],
     example: 'Estimated duration: 3–4 weeks. Resources: TCC DevOps Workshop series, Fireship Docker crash course. Next Step: Full-stack team project!',
+    video: 'saWZQr0RMpw'
   },
 ];
 
@@ -120,6 +125,7 @@ export const advancedTrack: CraftCard[] = [
       'Study real post-mortems from Netflix, Slack, GitHub',
     ],
     example: 'Estimated duration: 8–12 weeks. Resources: Grokking System Design, ByteByteGo newsletter, TCC Advanced Series. Target: Senior roles, staff engineering track.',
+    playlist: 'PLA3GkZPtsafZdyC5iucNM_uhqGJ5yFNUM'
   },
   {
     id: 'lp-dsa',
@@ -134,6 +140,7 @@ export const advancedTrack: CraftCard[] = [
       'Review your wrong answers — the lesson is there, not in correct ones',
     ],
     example: 'Estimated duration: 3–6 months. Resources: TCC DSA Series, NeetCode 150, Blind 75. Members who complete this track: 3× higher offer rate.',
+    playlist: 'PL9gnSGHSqcnr_DxHsP7AW9ftq0AtAyYqJ'
   },
 ];
 
