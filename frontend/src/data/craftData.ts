@@ -1,5 +1,17 @@
+/**
+ * Craft Data (Learning Paths)
+ * Purpose: Contains structured learning path data for the "Learn" section.
+ * Organized into three difficulty tracks: Beginner, Intermediate, and Advanced.
+ * Each track contains detailed course information including pitfalls, resources,
+ * and estimated durations to guide learners through their coding journey.
+ */
 import type { CraftCard } from '../types/index.js';
 
+/**
+ * Beginner Track
+ * Purpose: Foundation courses for new developers covering web fundamentals,
+ * JavaScript basics, and version control with Git
+ */
 export const beginnerTrack: CraftCard[] = [
   {
     id: 'lp-webfundamentals',
@@ -47,6 +59,11 @@ export const beginnerTrack: CraftCard[] = [
   },
 ];
 
+/**
+ * Intermediate Track
+ * Purpose: Advanced courses for developers ready to specialize in frontend,
+ * backend, UI/UX design, or DevOps practices
+ */
 export const intermediateTrack: CraftCard[] = [
   {
     id: 'lp-react',
@@ -106,6 +123,11 @@ export const intermediateTrack: CraftCard[] = [
   },
 ];
 
+/**
+ * Advanced Track
+ * Purpose: Expert-level courses for senior engineers covering system design,
+ * architecture patterns, and technical interview preparation
+ */
 export const advancedTrack: CraftCard[] = [
   {
     id: 'lp-systemdesign',
@@ -137,6 +159,10 @@ export const advancedTrack: CraftCard[] = [
   },
 ];
 
+/**
+ * Resource Formats
+ * Purpose: Lists all available learning resource types offered by TCC
+ */
 export const resourceFormats = [
   'Video Courses',
   'Written Guides',

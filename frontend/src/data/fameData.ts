@@ -1,3 +1,9 @@
+/**
+ * Fame Data (Hall of Fame / Leaderboard)
+ * Purpose: Contains contributor recognition data including top members,
+ * their achievements, badges, and leaderboard rankings. Used to showcase
+ * active community members and encourage participation.
+ */
 import type { FameCard, LeaderboardEntry } from '../types/index.js';
 
 import yashImg from '../assets/images/yash.webp';
@@ -6,6 +12,10 @@ import prathameshImg from '../assets/images/prathameshpathade.webp';
 import sarthakImg from '../assets/images/sarthakkanade.webp';
 import onkarImg from '../assets/images/onkarshinde.webp';
 
+/**
+ * Fame Data Array
+ * Purpose: Top 5 contributors with their roles, stats, and achievements
+ */
 export const fameData: FameCard[] = [
   {
     id: 'fame-1',
@@ -72,6 +82,11 @@ export const fameData: FameCard[] = [
   },
 ];
 
+/**
+ * Leaderboard Data
+ * Purpose: Simplified leaderboard view with scores and visual width percentages
+ * for animated progress bars
+ */
 export const leaderboardData: LeaderboardEntry[] = [
   { name: 'Yash M.', score: 2450, width: 95 },
   { name: 'Atharva R.', score: 1980, width: 78 },

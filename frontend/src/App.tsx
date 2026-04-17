@@ -29,11 +29,23 @@ import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { GoogleLoginModal } from './components/GoogleLoginModal';
 
+/**
+ * ProtectedRoute Component
+ * Purpose: Wraps routes that require authentication. If user is not logged in,
+ * displays a blurred page with a login modal. Once authenticated, shows the actual content.
+ * @param children - The protected content to render after authentication
+ */
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  /**
+   * handleSuccess Function
+   * Purpose: Handles successful Google OAuth login by sending the credential token
+   * to the backend API for verification and user authentication
+   * @param credentialResponse - Contains the Google OAuth credential token
+   */
   const handleSuccess = async (credentialResponse: any) => {
     try {
       setIsLoading(true);
@@ -118,33 +130,58 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
+/**
+ * AppContent Component
+ * Purpose: Main application content component that handles all animations,
+ * scroll effects, navigation, and routing logic
+ */
 function AppContent() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const lenisRef = useLenis();
   const location = useLocation();
   const appRef = useRef<HTMLElement>(null);
 
-  // Initialize mobile optimizations
+  /**
+   * Initialize Mobile Optimizations Effect
+   * Purpose: Sets up mobile-specific optimizations for better performance
+   * and user experience on mobile devices
+   */
   useEffect(() => {
     const cleanup = initMobileOptimizations();
     return cleanup;
   }, []);
 
+  /**
+   * toggleMenu Function
+   * Purpose: Toggles the fullscreen menu open/closed state
+   */
   const toggleMenu = () => {
     setIsMenuOpen((prev) => !prev);
   };
 
+  /**
+   * closeMenu Function
+   * Purpose: Closes the fullscreen menu
+   */
   const closeMenu = () => {
     setIsMenuOpen(false);
   };
 
-  // Scroll to top on route change
+  /**
+   * Scroll to Top on Route Change Effect
+   * Purpose: Automatically scrolls to the top of the page when navigating
+   * to a new route and refreshes ScrollTrigger animations
+   */
   useEffect(() => {
     window.scrollTo(0, 0);
     ScrollTrigger.refresh();
   }, [location.pathname]);
 
-  // Close menu on Escape key
+  /**
+   * Close Menu on Escape Key Effect
+   * Purpose: Allows users to close the fullscreen menu by pressing the Escape key
+   * for better keyboard accessibility
+   */
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isMenuOpen) {
@@ -156,7 +193,11 @@ function AppContent() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isMenuOpen]);
 
-  // Magnetic elements effect
+  /**
+   * Magnetic Elements Effect
+   * Purpose: Creates a magnetic hover effect on elements with the 'magnetic' class,
+   * making them follow the cursor slightly when hovered
+   */
   useEffect(() => {
     const ctx = gsap.context(() => {
       const magneticElements = document.querySelectorAll('.magnetic');
@@ -195,7 +236,11 @@ function AppContent() {
     };
   }, []);
 
-  // Scroll progress bar
+  /**
+   * Scroll Progress Bar Effect
+   * Purpose: Animates a progress bar at the top of the page that fills
+   * as the user scrolls down, providing visual feedback of scroll position
+   */
   useEffect(() => {
     const ctx = gsap.context(() => {
       gsap.to('.scroll-progress', {
@@ -211,7 +256,11 @@ function AppContent() {
     return () => ctx.revert();
   }, []);
 
-  // Refresh ScrollTrigger after all components mount
+  /**
+   * Refresh ScrollTrigger After Mount Effect
+   * Purpose: Ensures all ScrollTrigger animations are properly calculated
+   * after components have fully mounted and rendered
+   */
   useEffect(() => {
     const timer = setTimeout(() => {
       ScrollTrigger.refresh();
@@ -219,7 +268,11 @@ function AppContent() {
     return () => clearTimeout(timer);
   }, [location.pathname]);
 
-  // Background color transitions
+  /**
+   * Background Color Transitions Effect
+   * Purpose: Smoothly transitions the page background color as user scrolls
+   * through different sections, creating a dynamic visual experience
+   */
   useEffect(() => {
     const ctx = gsap.context(() => {
       const sections = [
@@ -260,12 +313,23 @@ function AppContent() {
     });
     return () => ctx.revert();
   }, []);
+
+  /**
+   * Navbar Hide/Show on Scroll Effect
+   * Purpose: Automatically hides the navbar when scrolling down and shows it
+   * when scrolling up, providing more screen space while maintaining easy access
+   */
   useEffect(() => {
     let lastScroll = 0;
     const navbar = document.getElementById('mainNav');
 
     const ctx = gsap.context(() => {});
 
+    /**
+     * handleScroll Function
+     * Purpose: Detects scroll direction and animates navbar visibility accordingly
+     * @param scroll - Current scroll position
+     */
     const handleScroll = ({ scroll }: { scroll: number }) => {
       if (!navbar || isMenuOpen) return;
       const direction = scroll > lastScroll ? 'down' : 'up';
@@ -361,6 +425,11 @@ function AppContent() {
   );
 }
 
+/**
+ * App Component
+ * Purpose: Root component that wraps the entire application with necessary providers
+ * including error boundary, Google OAuth, authentication context, and routing
+ */
 function App() {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '364464601188-f3a18rieechu74lmqbioiui8sjb3lsbc.apps.googleusercontent.com';
   return (

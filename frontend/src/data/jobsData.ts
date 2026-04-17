@@ -1,5 +1,15 @@
+/**
+ * Jobs Data
+ * Purpose: Contains job and internship listings for TCC members.
+ * Includes full-time positions, internships, and community roles with
+ * detailed metadata like location, salary, required skills, and deadlines.
+ */
 import type { JobCard } from '../types/index';
 
+/**
+ * Jobs Data Array
+ * Purpose: Active job listings displayed on the Jobs page
+ */
 export const jobsData: JobCard[] = [
   {
     id: 'job-1',

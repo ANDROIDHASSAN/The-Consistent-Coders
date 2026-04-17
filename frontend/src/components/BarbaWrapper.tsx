@@ -8,7 +8,7 @@ gsap.registerPlugin(ScrollTrigger);
 interface BarbaWrapperProps {
   children: React.ReactNode;
 }
-
+//omkarr
 export const BarbaWrapper: React.FC<BarbaWrapperProps> = ({ children }) => {
   const location = useLocation();
   const isFirstRender = React.useRef(true);

@@ -1,5 +1,15 @@
+/**
+ * Sessions Data
+ * Purpose: Contains information about upcoming workshops, live sessions,
+ * career guidance events, and past recordings. Used to display the community's
+ * learning events calendar and encourage member participation.
+ */
 import type { CraftCard } from '../types/index.js';
 
+/**
+ * Upcoming Sessions Array
+ * Purpose: Active and scheduled sessions with registration details
+ */
 export const upcomingSessions: CraftCard[] = [
   {
     id: 'session-react',
@@ -63,6 +73,10 @@ export const upcomingSessions: CraftCard[] = [
   },
 ];
 
+/**
+ * Past Recordings Array
+ * Purpose: Archive of previously recorded sessions available to members
+ */
 export const pastRecordings = [
   'Git Fundamentals Workshop',
   'Resume & LinkedIn Masterclass',
