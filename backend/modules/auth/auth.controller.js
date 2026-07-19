@@ -87,7 +87,7 @@ export const googleSignIn = async (req, res, next) => {
  * In production this should be your backend's deployed domain.
  */
 const getRedirectUri = () => {
-    return `http://localhost:5000/api/auth/google/callback`;
+    return env.callbackUrl || `http://localhost:5000/api/auth/google/callback`;
 };
 
 /**

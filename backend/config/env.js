@@ -18,4 +18,5 @@ export const env = {
     googleClientSecret: process.env.CLIENT_SECRET ?? '',
     frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:5173',
     jwtSecret: process.env.JWT_SECRET ?? 'change-me-in-production',
+    callbackUrl: process.env.CALLBACK_URL ?? '',
 };
