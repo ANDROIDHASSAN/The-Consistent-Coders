@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
+import { Seo } from '../seo/Seo';
 export const NotFoundPage = () => {
     const containerRef = useRef(null);
     useEffect(() => {
@@ -9,7 +10,8 @@ export const NotFoundPage = () => {
         }, containerRef);
         return () => ctx.revert();
     }, []);
-    return (<div ref={containerRef} className="not-found-page" style={{
+    return (<><Seo title="Page not found" description="That page does not exist." path="/404" noindex />
+    <div ref={containerRef} className="not-found-page" style={{
             minHeight: '100vh',
             display: 'flex',
             alignItems: 'center',
@@ -52,6 +54,7 @@ export const NotFoundPage = () => {
         }}>
           Back to Home
         </Link>
+        <p style={{ marginTop: '1.5rem' }}><Link to="/jobs" style={{ color: '#d4ff00' }}>Browse jobs →</Link></p>
       </div>
-    </div>);
+    </div></>);
 };

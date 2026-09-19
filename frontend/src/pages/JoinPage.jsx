@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Footer } from '../components/Footer';
+import { Breadcrumbs } from '../components/Breadcrumbs';
+import { Cta } from '../components/Cta';
+import { Seo } from '../seo/Seo';
 gsap.registerPlugin(ScrollTrigger);
 export const JoinPage = () => {
     const pageRef = useRef(null);
@@ -68,7 +71,9 @@ export const JoinPage = () => {
         }, pageRef);
         return () => ctx.revert();
     }, []);
-    return (<div ref={pageRef} className="join-page">
+    return (<>
+      <Seo title="Join The Consistent Coders — Build Together, Get Hired" description="Join a free community of students and early-career developers in India. Take on missions, build in teams, post and apply to jobs, and climb the leaderboard." path="/join" jsonLd={Breadcrumbs.schema([{ name: 'Join', path: '/join' }])} />
+      <div ref={pageRef} className="join-page">
       {/* SECTION: HERO */}
       <section ref={heroRef} className="section-hero join-hero theme-black" style={{
             minHeight: '100vh',
@@ -79,6 +84,7 @@ export const JoinPage = () => {
             paddingBottom: '80px'
         }}>
         <div className="container" style={{ textAlign: 'center', maxWidth: '1200px', margin: '0 auto', padding: '0 2rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'center' }}><Breadcrumbs items={[{ name: 'Join', path: '/join' }]} /></div>
           <h1 className="join-hero-title" style={{ fontSize: 'clamp(3.5rem, 10vw, 9rem)', lineHeight: '0.9', fontWeight: 900, marginBottom: 'clamp(2rem, 5vh, 4rem)' }}>
             <span style={{ display: 'inline-block' }}>BUILD</span> <br />
             <span style={{ display: 'inline-block' }} className="accent-text italic-serif">TOGETHER.</span> <br />
@@ -197,6 +203,7 @@ export const JoinPage = () => {
          </div>
       </section>
 
+      <Cta title="Joining takes one click. So does your first point." text="Sign in, post or apply to a job, and you're on the leaderboard." primary={{ to: '/jobs', label: 'BROWSE JOBS →' }} secondary={{ to: '/leaderboard', label: 'SEE LEADERBOARD' }} />
       <Footer />
 
       <style>{`
@@ -225,5 +232,6 @@ export const JoinPage = () => {
           }
         }
       `}</style>
-    </div>);
+    </div>
+    </>);
 };

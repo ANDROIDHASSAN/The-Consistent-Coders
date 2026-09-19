@@ -3,10 +3,10 @@ import { Link } from 'react-router-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import SplitType from 'split-type';
-import structuredLearningImg from '../assets/images/howitworks/structuredlearning.png';
-import teamProjectsImg from '../assets/images/howitworks/teamprojects.png';
-import earnRecognitionImg from '../assets/images/howitworks/earnrecognition.png';
-import getHiredImg from '../assets/images/gethired/get hired.png';
+import structuredLearningImg from '../assets/images/howitworks/structuredlearning.webp';
+import teamProjectsImg from '../assets/images/howitworks/teamprojects.webp';
+import earnRecognitionImg from '../assets/images/howitworks/earnrecognition.webp';
+import getHiredImg from '../assets/images/gethired/get hired.webp';
 gsap.registerPlugin(ScrollTrigger);
 export const HowItWorks = () => {
     const sectionRef = useRef(null);
@@ -113,7 +113,7 @@ export const HowItWorks = () => {
       <div className="hiw-rows-container">
         <div className="hiw-row reveal-fade">
           <div className="hiw-row-bg">
-            <img src={structuredLearningImg} alt="Structured Learning"/>
+            <img src={structuredLearningImg} alt="Structured learning paths for beginners" loading="lazy" decoding="async"/>
           </div>
           <div className="hiw-row-content">
             <h3 className="hiw-row-title">STRUCTURED LEARNING</h3>
@@ -123,7 +123,7 @@ export const HowItWorks = () => {
 
         <div className="hiw-row reveal-fade">
           <div className="hiw-row-bg">
-            <img src={teamProjectsImg} alt="Team Projects"/>
+            <img src={teamProjectsImg} alt="Developers building team projects together" loading="lazy" decoding="async"/>
           </div>
           <div className="hiw-row-content">
             <h3 className="hiw-row-title">TEAM PROJECTS</h3>
@@ -133,7 +133,7 @@ export const HowItWorks = () => {
 
         <div className="hiw-row reveal-fade">
           <div className="hiw-row-bg">
-            <img src={earnRecognitionImg} alt="Earn Recognition"/>
+            <img src={earnRecognitionImg} alt="Earn recognition and leaderboard points" loading="lazy" decoding="async"/>
           </div>
           <div className="hiw-row-content">
             <h3 className="hiw-row-title">EARN RECOGNITION</h3>
@@ -161,7 +161,7 @@ export const HowItWorks = () => {
               </Link>
             </div>
             <div className="phase-four-image">
-              <img src={getHiredImg} alt="Get Hired" className="phase-four-img"/>
+              <img src={getHiredImg} alt="Get hired through the community job directory" className="phase-four-img" loading="lazy" decoding="async"/>
             </div>
           </div>
         </div>

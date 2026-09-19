@@ -154,7 +154,7 @@ export const Fame = () => {
         {fameData.map((member) => (<div key={member.id} className="fame-card reveal-fade" id={member.id}>
             <div className="fame-rank mono-text">#{member.rank.toString().padStart(2, '0')}</div>
             <div className="fame-avatar">
-              <img src={member.avatar} alt={member.name}/>
+              <img src={member.avatar} alt={member.name} loading="lazy" decoding="async"/>
               {member.crown && <div className="fame-crown">{member.crown}</div>}
             </div>
             <div className="fame-info">

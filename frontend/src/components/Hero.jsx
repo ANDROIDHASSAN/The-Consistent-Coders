@@ -20,8 +20,8 @@ export const Hero = () => {
       if (heroSection) {
         heroTl.from(heroSection, {
           opacity: 0,
-          duration: 1.4,
-          ease: "power4.inOut",
+          duration: 0.6,
+          ease: "power2.out",
         });
       }
       if (eyebrow) {
@@ -37,19 +37,19 @@ export const Hero = () => {
           {
             y: 200,
             opacity: 0,
-            duration: 1.2,
-            stagger: 0.15,
+            duration: 0.9,
+            stagger: 0.12,
             ease: "power4.out",
           },
-          "-=0.8",
+          "-=0.5",
         );
       }
       // Subtext is always visible - no animation
       if (cta) {
         heroTl.from(
           cta,
-          { y: 24, opacity: 0, duration: 0.6, ease: "power2.out" },
-          "-=0.3",
+          { y: 24, opacity: 0, duration: 0.5, ease: "power2.out" },
+          "-=0.6",
         );
       }
       // Hero bg zoom parallax
@@ -107,8 +107,10 @@ export const Hero = () => {
       <div className="hero-bg-parallax">
         <img
           src={heroBg}
-          alt="Coding community background"
+          alt=""
           className="zoom-img"
+          fetchPriority="high"
+          decoding="async"
         />
         <div className="hero-vignette"></div>
       </div>
@@ -116,7 +118,7 @@ export const Hero = () => {
       <div className="hero-content">
         <div className="hero-eyebrow mono-text reveal-up">
           {" "}
-          // EST. 2026 — COMMUNITY ECOSYSTEM
+          // FREE JOB DIRECTORY · EARN POINTS
         </div>
         <h1 className="hero-title variable-font">
           <div className="split-line">
@@ -128,15 +130,17 @@ export const Hero = () => {
           </div>
         </h1>
         <p className="hero-subtext scroll-typewrite mono-text">
-          // Learn. Build real projects. Get hired. Together.
+          // Developer jobs & internships for freshers. Posted by the community.
         </p>
         <div className="hero-cta">
           <div className="magnetic-btn-wrapper magnetic" data-strength="60">
-            <Link to="/learn" className="btn-primary" id="discoverBtn">
-              <span className="btn-text">START YOUR JOURNEY</span>
+            <Link to="/jobs" className="btn-primary" id="discoverBtn">
+              <span className="btn-text">BROWSE JOBS</span>
               <div className="btn-bg"></div>
             </Link>
           </div>
+          <Link to="/jobs/new" className="btn-ghost">POST A JOB (+1 PT)</Link>
+          <Link to="/how-it-works" className="hero-howto mono-text">NEW HERE? SEE HOW IT WORKS →</Link>
           <div
             className="hero-scroll-hint mono-text"
             style={{ cursor: "pointer" }}
@@ -168,8 +172,8 @@ export const Hero = () => {
           <span className="badge-value">500+</span>
         </div>
         <div className="hero-badge reveal-up" style={{ "--delay": "1.4s" }}>
-          <span className="mono-text">PROJECTS</span>
-          <span className="badge-value">5+</span>
+          <span className="mono-text">JOBS</span>
+          <span className="badge-value">FREE</span>
         </div>
       </div>
     </section>

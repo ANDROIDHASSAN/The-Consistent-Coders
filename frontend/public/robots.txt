@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
+Disallow: /profile
+Disallow: /api/
+Disallow: /*/edit$
+Disallow: /jobs?*
 
 Sitemap: https://www.consistentcoders.com/sitemap.xml

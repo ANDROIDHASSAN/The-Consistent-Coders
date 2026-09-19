@@ -6,12 +6,11 @@ gsap.registerPlugin(ScrollTrigger);
 //omkarr
 export const BarbaWrapper = ({ children }) => {
     const location = useLocation();
-    const isFirstRender = React.useRef(true);
+    // Track the last animated path so StrictMode's double effect (and the initial mount) never play the curtain.
+    const lastPath = React.useRef(location.pathname);
     useEffect(() => {
-        if (isFirstRender.current) {
-            isFirstRender.current = false;
-            return;
-        }
+        if (lastPath.current === location.pathname) return;
+        lastPath.current = location.pathname;
         const ctx = gsap.context(() => { });
         // Page transition animation on route change
         const panels = document.querySelectorAll('.curtain-panel');
@@ -39,8 +38,8 @@ export const BarbaWrapper = ({ children }) => {
                         .set(curtain, { display: 'flex' })
                         .to(panels, {
                         scaleY: 1,
-                        duration: 0.5,
-                        stagger: 0.05,
+                        duration: 0.28,
+                        stagger: 0.03,
                         ease: 'power3.inOut',
                     });
                 });
@@ -49,7 +48,7 @@ export const BarbaWrapper = ({ children }) => {
                 // Scroll to top
                 window.scrollTo(0, 0);
                 // Wait for content to render
-                await new Promise(resolve => setTimeout(resolve, 100));
+                await new Promise(resolve => setTimeout(resolve, 30));
                 // Refresh ScrollTrigger after content is ready
                 try {
                     ScrollTrigger.refresh();
@@ -63,8 +62,8 @@ export const BarbaWrapper = ({ children }) => {
                     tl2 = gsap.timeline()
                         .to(panels, {
                         scaleY: 0,
-                        duration: 0.5,
-                        stagger: 0.05,
+                        duration: 0.28,
+                        stagger: 0.03,
                         ease: 'power3.inOut',
                     })
                         .set(curtain, { display: 'none' });

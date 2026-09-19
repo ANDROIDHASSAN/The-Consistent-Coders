@@ -1,5 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Footer } from '../components/Footer';
+import { ContactForm } from '../components/ContactForm';
+import { Breadcrumbs } from '../components/Breadcrumbs';
+import { Cta } from '../components/Cta';
+import { Seo } from '../seo/Seo';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { createSplitType, revertSplitType } from '../utils/splitTypeHelper';
@@ -7,8 +11,6 @@ gsap.registerPlugin(ScrollTrigger);
 export const ContactPage = () => {
     const sectionRef = useRef(null);
     const [hoveredCard, setHoveredCard] = useState(null);
-    const [formData, setFormData] = useState({ name: '', email: '', message: '' });
-    const [focusedField, setFocusedField] = useState(null);
     const splitInstanceRef = useRef(null);
     useEffect(() => {
         const ctx = gsap.context(() => {
@@ -64,9 +66,6 @@ export const ContactPage = () => {
             ctx.revert();
         };
     }, []);
-    const handleInputChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
     const contactMethods = [
         {
             icon: (<svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -105,7 +104,9 @@ export const ContactPage = () => {
             label: 'VIEW GITHUB',
         },
     ];
+    const crumbs = [{ name: 'Contact', path: '/contact' }];
     return (<>
+      <Seo title="Contact The Consistent Coders" description="Questions about a job listing, the leaderboard, or the community? Message us or join on Discord, WhatsApp, LinkedIn and GitHub. We reply within 48 hours." path="/contact" jsonLd={Breadcrumbs.schema(crumbs)} />
       <div className="contact-page" ref={sectionRef}>
         <div className="contact-hero">
           <div className="contact-decorative-bg">
@@ -115,6 +116,7 @@ export const ContactPage = () => {
           </div>
           
           <div className="contact-hero-content">
+            <Breadcrumbs items={crumbs} />
             <p className="contact-eyebrow mono-text"> // LET'S CONNECT</p>
             <h1 className="contact-hero-title">Get In Touch</h1>
             <p className="contact-subtitle">
@@ -144,43 +146,15 @@ export const ContactPage = () => {
             <div className="contact-form-header">
               <h2 className="contact-form-title">Send us a message</h2>
               <p className="contact-form-subtitle mono-text">
-                // We usually reply within 24 hours
+                // We usually reply within 48 hours
               </p>
             </div>
 
-            <form className="contact-form">
-              <div className="form-group">
-                <label className={`form-label mono-text ${focusedField === 'name' || formData.name ? 'active' : ''}`}>
-                  YOUR NAME
-                </label>
-                <input type="text" name="name" className="form-input" value={formData.name} onChange={handleInputChange} onFocus={() => setFocusedField('name')} onBlur={() => setFocusedField(null)}/>
-                <div className="form-input-line"></div>
-              </div>
-
-              <div className="form-group">
-                <label className={`form-label mono-text ${focusedField === 'email' || formData.email ? 'active' : ''}`}>
-                  YOUR EMAIL
-                </label>
-                <input type="email" name="email" className="form-input" value={formData.email} onChange={handleInputChange} onFocus={() => setFocusedField('email')} onBlur={() => setFocusedField(null)}/>
-                <div className="form-input-line"></div>
-              </div>
-
-              <div className="form-group">
-                <label className={`form-label mono-text ${focusedField === 'message' || formData.message ? 'active' : ''}`}>
-                  YOUR MESSAGE
-                </label>
-                <textarea name="message" className="form-input form-textarea" rows={5} value={formData.message} onChange={handleInputChange} onFocus={() => setFocusedField('message')} onBlur={() => setFocusedField(null)}></textarea>
-                <div className="form-input-line"></div>
-              </div>
-
-              <button type="submit" className="btn-primary btn-large contact-submit">
-                <span className="btn-text">SEND MESSAGE →</span>
-                <div className="btn-bg"></div>
-              </button>
-            </form>
+            <ContactForm />
           </div>
         </div>
       </div>
+      <Cta title="Rather post the question as a job?" text="If you're hiring or know an opening, list it — it's free and reaches the whole community." primary={{ to: '/jobs/new', label: 'POST A JOB (+1 PT)' }} secondary={{ to: '/jobs', label: 'BROWSE JOBS' }} />
 
       <Footer minimal/>
     </>);

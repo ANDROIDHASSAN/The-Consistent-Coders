@@ -3,6 +3,9 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Link } from 'react-router-dom';
 import { Footer } from '../components/Footer';
+import { Breadcrumbs } from '../components/Breadcrumbs';
+import { Cta } from '../components/Cta';
+import { Seo } from '../seo/Seo';
 gsap.registerPlugin(ScrollTrigger);
 import yashImg from '../assets/images/yash.webp';
 import hassanImg from '../assets/images/hassan.png';
@@ -75,12 +78,15 @@ export const ContributorsPage = () => {
         }, pageRef);
         return () => ctx.revert();
     }, []);
-    return (<div ref={pageRef} className="contributors-page theme-black">
+    return (<>
+      <Seo title="Honor Roll — Top Contributors" description="The people building The Consistent Coders: founders, architects and contributors ranked by EXP. See the live points leaderboard for job posters and applicants too." path="/contributors" jsonLd={Breadcrumbs.schema([{ name: 'Honor', path: '/contributors' }])} />
+      <div ref={pageRef} className="contributors-page theme-black">
       {/* BACKGROUND DECOR */}
       <div className="bg-decor"></div>
 
       {/* HERO */}
       <section className="honor-hero">
+         <Breadcrumbs items={[{ name: 'Honor', path: '/contributors' }]} />
          <h1 className="honor-title serif-text">
             <span style={{ display: 'inline-block' }}>Hall of </span> <br />
             <span className="accent-text italic-serif" style={{ display: 'inline-block' }}>Honor</span>
@@ -157,6 +163,7 @@ export const ContributorsPage = () => {
          </div>
       </section>
 
+      <Cta title="Want your name here?" text="Points from posting and applying to jobs put you on the live leaderboard. Contributions to the platform put you on this wall." primary={{ to: '/leaderboard', label: 'LIVE LEADERBOARD →' }} secondary={{ to: '/tasks', label: 'OPEN MISSIONS' }} />
       <Footer />
 
       <style>{`
@@ -451,5 +458,6 @@ export const ContributorsPage = () => {
             }
          }
       `}</style>
-    </div>);
+    </div>
+    </>);
 };
