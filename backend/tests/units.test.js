@@ -2,6 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseJobInput } from '../modules/jobs/job.service.js';
+import { extractJobFromText } from '../modules/jobs/job.extract.js';
 import { rankFor, badgesFor, levelFor, arenasFor, POINT_RULES, TRACKS } from '../modules/points/points.service.js';
 import { learningSummary, PATHS } from '../modules/learn/learn.routes.js';
 import { buildSitemap, renderJobPage } from '../modules/seo/seo.service.js';
@@ -103,4 +104,54 @@ test('renderJobPage injects title, JobPosting JSON-LD and crawlable body; closed
     const closed = renderJobPage(shell, { ...job, status: 'closed' });
     assert.match(closed, /noindex/);
     assert.doesNotMatch(closed, /JobPosting/);
+});
+
+test('extractJobFromText fills the form from WhatsApp-style posts', () => {
+    const a = extractJobFromText(`🚨 *Hiring - Backend Engineer (Freshers)*
+
+Company: Work360
+
+Skills: Java / Python / Node.js
+
+Qualification: Bachelor's or Master's degree
+
+👉 Apply here: https://tinyurl.com/4heea5m8`);
+    assert.equal(a.title, 'Backend Engineer');
+    assert.equal(a.company, 'Work360');
+    assert.deepEqual(a.skills, ['Java', 'Python', 'Node.js']);
+    assert.equal(a.experience, 'Fresher');
+    assert.equal(a.type, 'Full-time');
+    assert.equal(a.applyUrl, 'https://tinyurl.com/4heea5m8');
+
+    const b = extractJobFromText(`💼 GoQuant is Hiring
+
+• Role: *Back End Developer*
+
+Skills: C++ / Rust / Python
+
+Experience: Freshers / Experienced
+
+👉 Apply here: https://tinyurl.com/fx48rnty`);
+    assert.equal(b.title, 'Back End Developer');
+    assert.equal(b.company, 'GoQuant');
+    assert.deepEqual(b.skills, ['C++', 'Rust', 'Python']);
+
+    // LinkedIn link preview (og:title + og:description)
+    const c = extractJobFromText(`I am running a search for a Founding AI Engineer at an early-stage startup building the engineering intelligence layer for the AI era. up to ₹70 LPA, Remote (India), 3+ yrs, plus meaningful equity. | Priya Saraogi
+
+Founding roles change the shape of your day. You own the AI architecture with PyTorch and LLM tooling.`);
+    assert.equal(c.title, 'Founding AI Engineer');
+    assert.equal(c.company, '', 'vague "startup" is not a company name');
+    assert.equal(c.workMode, 'Remote');
+    assert.equal(c.location, 'Remote (India)');
+    assert.equal(c.experience, 'Senior');
+    assert.match(c.salary, /₹70 LPA/);
+    assert.ok(c.skills.includes('PyTorch') && c.skills.includes('LLM'));
+
+    const d = extractJobFromText('React Developer Intern at Acme Labs, Bengaluru (hybrid). Stipend: ₹15K/month. 6-month internship.');
+    assert.equal(d.type, 'Internship');
+    assert.equal(d.workMode, 'Hybrid');
+    assert.equal(d.location, 'Bengaluru');
+    assert.equal(d.company, 'Acme Labs');
+    assert.equal(d.salary, '₹15K/month');
 });

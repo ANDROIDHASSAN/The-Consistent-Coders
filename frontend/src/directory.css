@@ -84,8 +84,29 @@ h3.h3 { font-size: 1.15rem; margin-bottom: 0.5rem; }
 .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--color-accent); }
 .field textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
 .field-hint { font-size: 0.75rem; color: var(--muted); }
-.form-error { color: #ff8a8a; margin: 0.5rem 0 1rem; font-size: 0.9rem; }
-.form-success { color: var(--color-accent); margin: 0.5rem 0 1rem; font-size: 0.9rem; }
+.field-hint.is-ok { color: var(--color-accent); }
+
+/* Paste-to-fill box at the top of the post-job form */
+.paste-box { position: relative; margin: -0.2rem 0 1.4rem; padding: 1rem 1rem 0.9rem; border: 1px dashed rgba(212, 255, 60, 0.45); border-radius: 14px; background: linear-gradient(180deg, rgba(212, 255, 60, 0.07), transparent); transition: border-color 0.2s; }
+.paste-box:focus-within { border-color: var(--color-accent); border-style: solid; }
+.paste-box .field { margin-bottom: 0.6rem; }
+.paste-box .field > span { display: flex; align-items: center; gap: 0.5rem; color: var(--color-accent); }
+.paste-box textarea { min-height: 96px; font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.5; }
+.paste-kbd { font: 600 0.62rem var(--font-mono); letter-spacing: 0.05em; padding: 0.12rem 0.4rem; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); text-transform: none; }
+.paste-actions { display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap; }
+.paste-actions .field-hint b { color: #fff; font-weight: 600; }
+.paste-box.is-busy::after { content: ''; position: absolute; inset: auto 0 0; height: 2px; border-radius: 2px; background: linear-gradient(90deg, transparent, var(--color-accent), transparent); animation: paste-scan 1s linear infinite; }
+@keyframes paste-scan { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+.form-error, .form-success {
+    display: flex; gap: 0.65rem; align-items: flex-start;
+    margin: 0.75rem 0 1rem; padding: 0.85rem 1rem;
+    border: 1px solid; border-radius: 12px; font-size: 0.9rem; line-height: 1.45;
+}
+.form-error::before, .form-success::before { flex: none; font-weight: 700; }
+.form-error { color: #ffc2c2; background: rgba(255, 90, 90, 0.08); border-color: rgba(255, 90, 90, 0.35); }
+.form-error::before { content: '!'; width: 1.35rem; height: 1.35rem; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 90, 90, 0.25); color: #ffd0d0; font-size: 0.8rem; }
+.form-success { color: var(--color-accent); background: rgba(212, 255, 60, 0.07); border-color: rgba(212, 255, 60, 0.35); }
+.form-success::before { content: '✓'; }
 .hp { position: absolute; left: -9999px; opacity: 0; height: 0; overflow: hidden; }
 .tcc-form--compact { max-width: 620px; }
 

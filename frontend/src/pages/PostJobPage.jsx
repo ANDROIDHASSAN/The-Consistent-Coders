@@ -32,6 +32,10 @@ Nice to have:
 How to apply:
 `;
 
+const DRAFT_KEY = 'tcc:jobDraft';
+const readDraft = () => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY)) || null; } catch { return null; } };
+const REQUIRED = ['title', 'company', 'location', 'description'];
+
 /** Create (/jobs/new) and edit (/jobs/:slug/edit) share this page. */
 export const PostJobPage = () => {
     const { slug } = useParams();
@@ -40,15 +44,61 @@ export const PostJobPage = () => {
     const navigate = useNavigate();
     const { isSignedIn, isLoaded } = useSession();
     const { celebrate, toast, play, me } = useGame();
-    const [form, setForm] = useState(EMPTY);
+    // A draft survives the sign-in round trip, so pasting before signing in loses nothing.
+    const [form, setForm] = useState(() => (editing ? EMPTY : { ...EMPTY, ...readDraft() }));
     const [jobId, setJobId] = useState(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
+    const [paste, setPaste] = useState('');
+    const [filling, setFilling] = useState(false);
+    const [filled, setFilled] = useState(null); // { count, missing[] } after a successful autofill
+    const [pasteError, setPasteError] = useState('');
+
+    useEffect(() => {
+        if (editing) return;
+        try { localStorage.setItem(DRAFT_KEY, JSON.stringify(form)); } catch { /* private mode */ }
+    }, [form, editing]);
+
+    const autofill = async (raw) => {
+        const text = String(raw ?? paste).trim();
+        if (text.length < 10) return;
+        if (!isSignedIn) { setFilled({ pending: true }); return; } // draft is saved; we fill right after sign-in
+        setFilling(true);
+        setPasteError('');
+        try {
+            const { draft } = await api('/jobs/extract', { method: 'POST', body: /^https?:\/\/\S+$/i.test(text) ? { url: text } : { text } });
+            const next = {
+                ...EMPTY,
+                ...draft,
+                skills: (draft.skills || []).join(', '),
+                description: draft.description || '',
+                applyUrl: draft.applyUrl || '',
+                company: draft.company || org || '',
+            };
+            delete next.sourceUrl;
+            setForm(next);
+            const missing = REQUIRED.filter((k) => !next[k] || (k === 'description' && next[k].length < 80));
+            setFilled({ count: Object.keys(EMPTY).filter((k) => next[k] && next[k] !== EMPTY[k]).length, missing });
+            play(missing.length ? 'click' : 'success');
+            setTimeout(() => document.getElementById(missing[0] || 'publish')?.focus(), 50);
+        }
+        catch (err) {
+            setFilled(null);
+            setPasteError(err.message);
+            play('error');
+        }
+        finally { setFilling(false); }
+    };
+
+    // Pasted before sign-in → fill as soon as the session lands.
+    useEffect(() => {
+        if (isSignedIn && filled?.pending && paste) autofill(paste);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- run once when sign-in completes
+    }, [isSignedIn]);
 
     // Pre-fill the company a poster told us about during onboarding.
     const org = me?.user?.org;
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- the profile arrives async; prefill once it does
         if (!editing && org) setForm((f) => (f.company ? f : { ...f, company: org }));
     }, [editing, org]);
 
@@ -80,6 +130,7 @@ export const PostJobPage = () => {
             }
             else {
                 const res = await api('/jobs', { method: 'POST', body });
+                try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
                 await celebrate(res.reward, 'job posted');
                 navigate(`/jobs/${res.job.slug}`);
             }
@@ -109,9 +160,11 @@ export const PostJobPage = () => {
                     <Breadcrumbs items={crumbs} />
                     <header className="page-head">
                         <p className="page-eyebrow mono-text">// {editing ? 'EDIT LISTING' : 'FREE LISTING · +1 POINT'}</p>
-                        <h1 className="page-title">{editing ? 'Edit your job' : <>Post a job in <em>two minutes</em></>}</h1>
+                        <h1 className="page-title">{editing ? 'Edit your job' : <>Paste a job. <em>We fill the form.</em></>}</h1>
                         <p className="page-lede">
-                            Hiring, or just know about an opening? Post it here. Anyone can — students, founders, recruiters. It goes live instantly, gets indexed by Google as a job listing, and you earn a point.
+                            {editing
+                                ? 'Update the listing. Changes go live instantly.'
+                                : 'Got a job from WhatsApp or LinkedIn? Paste the text or the link — title, company, skills and salary fill themselves. Check, publish, +1 point.'}
                         </p>
                     </header>
 
@@ -119,16 +172,39 @@ export const PostJobPage = () => {
                         <p className="empty">Sign-in isn't configured yet (missing <code>VITE_CLERK_PUBLISHABLE_KEY</code>).</p>
                     ) : !isLoaded ? (
                         <div className="skeleton" />
-                    ) : !isSignedIn ? (
-                        <div className="panel">
-                            <p style={{ marginBottom: '1rem' }}>You need a free account so applicants can reach you.</p>
-                            <SignInButton mode="modal"><button type="button" className="btn-primary"><span className="btn-text">SIGN IN TO POST</span><div className="btn-bg"></div></button></SignInButton>
-                        </div>
                     ) : (
                         <form className="panel" onSubmit={submit}>
+                            {!editing && (
+                                <div className={`paste-box${filling ? ' is-busy' : ''}`}>
+                                    <label className="field">
+                                        <span>Paste the job post or a link <b className="paste-kbd">⌘V</b></span>
+                                        <textarea
+                                            rows={4}
+                                            placeholder={'🚨 Hiring – Backend Engineer (Freshers)\nCompany: Work360\nSkills: Java / Python / Node.js\nApply: https://…\n\n…or just a LinkedIn / careers-page link'}
+                                            value={paste}
+                                            onChange={(e) => setPaste(e.target.value)}
+                                            onPaste={(e) => { const t = e.clipboardData.getData('text'); if (t.trim()) { setPaste(t); setTimeout(() => autofill(t), 0); } }}
+                                        />
+                                    </label>
+                                    <div className="paste-actions">
+                                        <button type="button" className="btn-ghost btn-sm" disabled={filling || paste.trim().length < 10} onClick={() => autofill()}>
+                                            {filling ? 'READING…' : 'AUTOFILL ↓'}
+                                        </button>
+                                        {filled?.pending && !isSignedIn && <span className="field-hint">Sign in below and we'll fill the form from what you pasted.</span>}
+                                        {filled && !filled.pending && (
+                                            <span className={`field-hint${filled.missing.length ? '' : ' is-ok'}`} role="status">
+                                                {filled.missing.length
+                                                    ? <>Filled {filled.count} fields — just add <b>{filled.missing.join(', ')}</b>.</>
+                                                    : <>Filled {filled.count} fields. Looks complete — hit publish.</>}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {pasteError && <p className="form-error" role="alert" style={{ marginBottom: 0 }}>{pasteError}</p>}
+                                </div>
+                            )}
                             <div className="form-grid">
-                                <label className="field"><span>Job title *</span><input required minLength={3} maxLength={120} placeholder="Frontend Developer Intern" value={form.title} onChange={update('title')} /></label>
-                                <label className="field"><span>Company *</span><input required minLength={2} maxLength={120} placeholder="Acme Labs" value={form.company} onChange={update('company')} /></label>
+                                <label className="field"><span>Job title *</span><input id="title" required minLength={3} maxLength={120} placeholder="Frontend Developer Intern" value={form.title} onChange={update('title')} /></label>
+                                <label className="field"><span>Company *</span><input id="company" required minLength={2} maxLength={120} placeholder="Acme Labs" value={form.company} onChange={update('company')} /></label>
                             </div>
                             <div className="form-grid">
                                 <label className="field"><span>Job type *</span><select value={form.type} onChange={update('type')}>{TYPES.map((t) => <option key={t}>{t}</option>)}</select></label>
@@ -136,7 +212,7 @@ export const PostJobPage = () => {
                                 <label className="field"><span>Experience *</span><select value={form.experience} onChange={update('experience')}>{LEVELS.map((t) => <option key={t}>{t}</option>)}</select></label>
                             </div>
                             <div className="form-grid">
-                                <label className="field"><span>Location *</span><input required maxLength={120} placeholder="Bengaluru / Remote (India)" value={form.location} onChange={update('location')} /></label>
+                                <label className="field"><span>Location *</span><input id="location" required maxLength={120} placeholder="Bengaluru / Remote (India)" value={form.location} onChange={update('location')} /></label>
                                 <label className="field"><span>Salary / stipend</span><input maxLength={80} placeholder="₹6–8 LPA or ₹15K/month" value={form.salary} onChange={update('salary')} /></label>
                             </div>
                             <label className="field">
@@ -145,7 +221,7 @@ export const PostJobPage = () => {
                             </label>
                             <label className="field">
                                 <span>Description * (min 80 characters)</span>
-                                <textarea required minLength={80} maxLength={8000} rows={12} value={form.description} onChange={update('description')} placeholder={TEMPLATE} />
+                                <textarea id="description" required minLength={80} maxLength={8000} rows={12} value={form.description} onChange={update('description')} placeholder={TEMPLATE} />
                                 <span className="field-hint">{form.description.length} / 8000 · Use short paragraphs and dashes for bullet points. <button type="button" className="btn-ghost btn-sm" style={{ marginLeft: '0.5rem' }} onClick={() => setForm((f) => ({ ...f, description: f.description || TEMPLATE }))}>Insert template</button></span>
                             </label>
                             <div className="form-grid">
@@ -155,11 +231,21 @@ export const PostJobPage = () => {
                             <label className="field"><span>Application deadline (optional)</span><input type="date" value={form.deadline} onChange={update('deadline')} /></label>
                             {error && <p className="form-error" role="alert">{error}</p>}
                             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                                <button type="submit" className="btn-primary" disabled={busy}>
-                                    <span className="btn-text">{busy ? 'SAVING…' : editing ? 'SAVE CHANGES' : 'PUBLISH JOB (+1 PT)'}</span>
-                                    <div className="btn-bg"></div>
-                                </button>
+                                {isSignedIn ? (
+                                    <button id="publish" type="submit" className="btn-primary" disabled={busy}>
+                                        <span className="btn-text">{busy ? 'SAVING…' : editing ? 'SAVE CHANGES' : 'PUBLISH JOB (+1 PT)'}</span>
+                                        <div className="btn-bg"></div>
+                                    </button>
+                                ) : (
+                                    <SignInButton mode="modal">
+                                        <button type="button" className="btn-primary" onClick={() => play('click')}>
+                                            <span className="btn-text">SIGN IN TO PUBLISH (+1 PT)</span>
+                                            <div className="btn-bg"></div>
+                                        </button>
+                                    </SignInButton>
+                                )}
                                 <Link to={editing ? `/jobs/${slug}` : '/jobs'} className="btn-ghost">Cancel</Link>
+                                {!isSignedIn && <span className="field-hint">Free account, one click with Google. Your draft is kept.</span>}
                             </div>
                         </form>
                     )}

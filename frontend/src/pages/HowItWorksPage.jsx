@@ -16,7 +16,7 @@ const CANDIDATE = [
     { title: 'Climb the leaderboard', text: 'Points from applying, posting and daily check-ins raise your rank from Rookie to Legend.' },
 ];
 const POSTER = [
-    { title: 'Know an opening? Post it', text: 'Founder, recruiter, or a student who saw a role — anyone can post. Two-minute form. +1 point.' },
+    { title: 'Know an opening? Paste it', text: 'Founder, recruiter, or a student who saw a role — anyone can post. Paste the WhatsApp text or LinkedIn link and the form fills itself. Check, publish. +1 point.' },
     { title: 'It goes live everywhere', text: 'Your listing gets its own page, is added to the sitemap and marked up as a Google job listing.' },
     { title: 'Review applicants', text: 'See each candidate with their note, portfolio link, headline and points. Shortlist or reject in one click.' },
     { title: 'Close when filled', text: 'Mark it filled and it leaves search results. You keep the points.' },
