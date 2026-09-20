@@ -1,6 +1,8 @@
 // Turns a pasted job post (WhatsApp / LinkedIn text) or a link into a draft for the
 // post-job form. Heuristics only — the poster reviews before publishing.
 // ponytail: regex heuristics; swap for an LLM call if the miss rate gets annoying.
+import dns from 'node:dns/promises';
+import net from 'node:net';
 
 const KNOWN_SKILLS = [
     'React', 'React Native', 'Next.js', 'Vue', 'Angular', 'Svelte', 'JavaScript', 'TypeScript', 'Node.js', 'Express',
@@ -83,7 +85,31 @@ export const extractJobFromText = (raw) => {
     return out;
 };
 
-const PRIVATE_HOST = /^(localhost|.*\.local|0\.0\.0\.0|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|\[?::1\]?$)/i;
+// SSRF guard: resolve the host and refuse anything that lands on a loopback / private /
+// link-local / ULA address — the page's title+description are echoed back to the caller.
+// ponytail: lookup-then-fetch leaves a DNS-rebinding window; pin the resolved IP via an
+// undici Agent `connect.lookup` if this ever runs somewhere with a reachable private network.
+const isPrivateIp = (ip) => {
+    const v = net.isIP(ip);
+    if (v === 4) {
+        const [a, b] = ip.split('.').map(Number);
+        return a === 0 || a === 10 || a === 127 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127) || a >= 224;
+    }
+    if (v === 6) {
+        const h = ip.toLowerCase();
+        if (h === '::' || h === '::1') return true;
+        if (h.startsWith('::ffff:')) return isPrivateIp(h.slice(7)); // IPv4-mapped
+        return /^(fc|fd|fe[89ab])/.test(h);
+    }
+    return true; // not an IP literal — caller resolves first
+};
+const assertPublicUrl = async (target) => {
+    if (!/^https?:$/.test(target.protocol)) throw new Error('Only public http(s) links are supported.');
+    const host = target.hostname.replace(/^\[|\]$/g, '');
+    if (/^(localhost|.*\.local|.*\.internal)$/i.test(host)) throw new Error('Only public http(s) links are supported.');
+    const addrs = net.isIP(host) ? [{ address: host }] : await dns.lookup(host, { all: true }).catch(() => []);
+    if (addrs.length === 0 || addrs.some((a) => isPrivateIp(a.address))) throw new Error('Only public http(s) links are supported.');
+};
 const meta = (html, prop) => {
     const m = html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${escapeRx(prop)}["'][^>]*content=["']([^"']*)["']`, 'i'))
         || html.match(new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]*(?:property|name)=["']${escapeRx(prop)}["']`, 'i'));
@@ -95,20 +121,25 @@ const decodeEntities = (s) => s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').rep
 export const extractJobFromUrl = async (url) => {
     let target;
     try { target = new URL(url); } catch { throw new Error('That does not look like a link.'); }
-    if (!/^https?:$/.test(target.protocol) || PRIVATE_HOST.test(target.hostname)) throw new Error('Only public http(s) links are supported.');
 
-    const res = await fetch(target, {
-        redirect: 'follow',
-        signal: AbortSignal.timeout(8000),
-        headers: { 'User-Agent': 'WhatsApp/2.23.20 A', Accept: 'text/html,*/*' },
-    });
+    // Follow redirects by hand so every hop (tinyurl → job board → …) gets the same check.
+    const signal = AbortSignal.timeout(8000);
+    let res;
+    for (let hop = 0; ; hop++) {
+        await assertPublicUrl(target);
+        res = await fetch(target, { redirect: 'manual', signal, headers: { 'User-Agent': 'WhatsApp/2.23.20 A', Accept: 'text/html,*/*' } });
+        const location = res.headers.get('location');
+        if (!(res.status >= 300 && res.status < 400 && location)) break;
+        if (hop >= 3) throw new Error('Could not read that page. Paste the job text instead.');
+        target = new URL(location, target);
+    }
     const html = (await res.text()).slice(0, 512 * 1024);
     const title = meta(html, 'og:title') || decodeEntities((html.match(/<title[^>]*>([^<]*)<\/title>/i) || ['', ''])[1]);
     const desc = meta(html, 'og:description') || meta(html, 'description');
     if (!title && !desc) throw new Error('Could not read that page. Paste the job text instead.');
 
     const draft = extractJobFromText(`${title}\n\n${desc}`);
-    draft.applyUrl = res.url || target.href;
+    draft.applyUrl = target.href;
     draft.sourceUrl = draft.applyUrl;
     return draft;
 };
