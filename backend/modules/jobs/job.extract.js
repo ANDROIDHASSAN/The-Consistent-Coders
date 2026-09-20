@@ -110,6 +110,21 @@ const assertPublicUrl = async (target) => {
     const addrs = net.isIP(host) ? [{ address: host }] : await dns.lookup(host, { all: true }).catch(() => []);
     if (addrs.length === 0 || addrs.some((a) => isPrivateIp(a.address))) throw new Error('Only public http(s) links are supported.');
 };
+// Read at most `max` bytes, then cancel — the <head> we need is always near the top.
+const readCapped = async (res, max) => {
+    const reader = res.body?.getReader();
+    if (!reader) return '';
+    const chunks = [];
+    let size = 0;
+    while (size < max) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        size += value.byteLength;
+    }
+    await reader.cancel().catch(() => {});
+    return new TextDecoder().decode(Buffer.concat(chunks, Math.min(size, max)));
+};
 const meta = (html, prop) => {
     const m = html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${escapeRx(prop)}["'][^>]*content=["']([^"']*)["']`, 'i'))
         || html.match(new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]*(?:property|name)=["']${escapeRx(prop)}["']`, 'i'));
@@ -133,7 +148,7 @@ export const extractJobFromUrl = async (url) => {
         if (hop >= 3) throw new Error('Could not read that page. Paste the job text instead.');
         target = new URL(location, target);
     }
-    const html = (await res.text()).slice(0, 512 * 1024);
+    const html = await readCapped(res, 512 * 1024);
     const title = meta(html, 'og:title') || decodeEntities((html.match(/<title[^>]*>([^<]*)<\/title>/i) || ['', ''])[1]);
     const desc = meta(html, 'og:description') || meta(html, 'description');
     if (!title && !desc) throw new Error('Could not read that page. Paste the job text instead.');
