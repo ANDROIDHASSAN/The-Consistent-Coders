@@ -42,6 +42,13 @@ if (env.clerkSecretKey && env.clerkPublishableKey) {
 else {
     console.warn('Clerk keys missing — running with sign-in disabled.');
 }
+// Vercel rewrites /sitemap.xml and /jobs/:slug to this function but hands us the
+// original URL, so map them onto the SEO routes here.
+app.use((req, _res, next) => {
+    if (req.path === '/sitemap.xml') req.url = '/api/seo/sitemap.xml';
+    else if (/^\/jobs\/(?!new$)[^/]+$/.test(req.path)) req.url = `/api/seo/render/job/${req.path.slice('/jobs/'.length)}`;
+    next();
+});
 app.use('/api', apiRoutes);
 app.use(notFoundMiddleware);
 app.use(errorMiddleware);

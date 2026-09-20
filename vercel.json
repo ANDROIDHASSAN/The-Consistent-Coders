@@ -13,15 +13,19 @@
   },
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "/api"
+    },
+    {
       "source": "/sitemap.xml",
-      "destination": "/api/seo/sitemap.xml"
+      "destination": "/api"
     },
     {
       "source": "/jobs/:slug((?!new$)[^/]+)",
-      "destination": "/api/seo/render/job/:slug"
+      "destination": "/api"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/200.html"
     }
   ],
