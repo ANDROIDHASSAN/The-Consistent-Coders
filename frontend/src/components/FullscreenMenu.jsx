@@ -1,12 +1,12 @@
 import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import gsap from 'gsap';
-import { GoogleSignInButton } from './GoogleSignInButton';
-import { useAuth } from '../context/AuthContext';
+import { AuthButton } from './AuthButton';
+import { useSession } from '../lib/auth';
 export const FullscreenMenu = ({ isOpen, onClose, lenisRef }) => {
     const menuRef = useRef(null);
     const timelineRef = useRef(null);
-    const { user, logout } = useAuth();
+    const { isSignedIn } = useSession();
     useEffect(() => {
         let ctx = gsap.context(() => {
             // Build menu timeline
@@ -79,6 +79,60 @@ export const FullscreenMenu = ({ isOpen, onClose, lenisRef }) => {
             </Link>
           </li>
           <li className="menu-item">
+            <Link to="/how-it-works" className="menu-link" onClick={handleLinkClick}>
+              <span className="menu-link-inner">
+                <span className="menu-link-text" data-text="START HERE">
+                  START HERE
+                </span>
+              </span>
+            </Link>
+          </li>
+          <li className="menu-item">
+            <Link to="/jobs" className="menu-link" onClick={handleLinkClick}>
+              <span className="menu-link-inner">
+                <span className="menu-link-text" data-text="JOBS">
+                  JOBS
+                </span>
+              </span>
+            </Link>
+          </li>
+          <li className="menu-item">
+            <Link to="/jobs/new" className="menu-link" onClick={handleLinkClick}>
+              <span className="menu-link-inner">
+                <span className="menu-link-text" data-text="POST A JOB">
+                  POST A JOB
+                </span>
+              </span>
+            </Link>
+          </li>
+          <li className="menu-item">
+            <Link to="/projects" className="menu-link" onClick={handleLinkClick}>
+              <span className="menu-link-inner">
+                <span className="menu-link-text" data-text="PROJECTS">
+                  PROJECTS
+                </span>
+              </span>
+            </Link>
+          </li>
+          <li className="menu-item">
+            <Link to="/leaderboard" className="menu-link" onClick={handleLinkClick}>
+              <span className="menu-link-inner">
+                <span className="menu-link-text" data-text="LEADERBOARD">
+                  LEADERBOARD
+                </span>
+              </span>
+            </Link>
+          </li>
+          <li className="menu-item">
+            <Link to="/blog" className="menu-link" onClick={handleLinkClick}>
+              <span className="menu-link-inner">
+                <span className="menu-link-text" data-text="BLOG">
+                  BLOG
+                </span>
+              </span>
+            </Link>
+          </li>
+          <li className="menu-item">
             <Link to="/learn" className="menu-link" onClick={handleLinkClick}>
               <span className="menu-link-inner">
                 <span className="menu-link-text" data-text="LEARN">
@@ -115,38 +169,6 @@ export const FullscreenMenu = ({ isOpen, onClose, lenisRef }) => {
             </Link>
           </li>
           <li className="menu-item">
-            {user ? (<Link to="/profile" className="menu-link" onClick={handleLinkClick}>
-                <span className="menu-link-inner">
-                  <span className="menu-link-text" data-text="EDIT PROFILE">
-                    EDIT PROFILE
-                  </span>
-                </span>
-              </Link>) : (<div className="menu-link" style={{ pointerEvents: 'auto' }}>
-                <GoogleSignInButton onSuccess={handleLinkClick} enabled={isOpen} />
-              </div>)}
-          </li>
-          {user ? (<li className="menu-item">
-              <button type="button" className="menu-link" onClick={() => {
-                logout();
-                handleLinkClick();
-            }}>
-                <span className="menu-link-inner">
-                  <span className="menu-link-text" data-text="LOGOUT">
-                    LOGOUT
-                  </span>
-                </span>
-              </button>
-            </li>) : null}
-          <li className="menu-item">
-            <Link to="/jobs" className="menu-link" onClick={handleLinkClick}>
-              <span className="menu-link-inner">
-                <span className="menu-link-text" data-text="JOBS">
-                  JOBS
-                </span>
-              </span>
-            </Link>
-          </li>
-          <li className="menu-item">
             <Link to="/contact" className="menu-link" onClick={handleLinkClick}>
               <span className="menu-link-inner">
                 <span className="menu-link-text" data-text="CONTACT">
@@ -154,6 +176,17 @@ export const FullscreenMenu = ({ isOpen, onClose, lenisRef }) => {
                 </span>
               </span>
             </Link>
+          </li>
+          <li className="menu-item">
+            {isSignedIn ? (<Link to="/profile" className="menu-link" onClick={handleLinkClick}>
+                <span className="menu-link-inner">
+                  <span className="menu-link-text" data-text="MY DASHBOARD">
+                    MY DASHBOARD
+                  </span>
+                </span>
+              </Link>) : (<div className="menu-link" style={{ pointerEvents: 'auto' }}>
+                <AuthButton onNavigate={handleLinkClick} />
+              </div>)}
           </li>
         </ul>
         <div className="menu-footer mono-text">
@@ -178,7 +211,7 @@ export const FullscreenMenu = ({ isOpen, onClose, lenisRef }) => {
           </a>
         </div>
         <div className="menu-counter mono-text" id="menuCounter">
-          01 / 08
+          01 / 13
         </div>
       </div>
     </div>);

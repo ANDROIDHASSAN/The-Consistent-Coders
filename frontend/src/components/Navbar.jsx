@@ -2,8 +2,8 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { GoogleSignInButton } from './GoogleSignInButton';
-import { useAuth } from '../context/AuthContext';
+import { AuthButton } from './AuthButton';
+import { useGame } from '../context/GameContext';
 import './NavbarStyles.css';
 // import tccLogo from '../assets/images/logo/favicon/the tcc.png';
 gsap.registerPlugin(ScrollTrigger);
@@ -11,26 +11,14 @@ export const Navbar = ({ onMenuToggle, isMenuOpen }) => {
     const navRef = useRef(null);
     // const brandRef = useRef<HTMLDivElement>(null);
     const [isScrolled, setIsScrolled] = useState(false);
-    const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-    const profileMenuRef = useRef(null);
     const location = useLocation();
-    const { user, logout } = useAuth();
+    const { soundOn, toggleSound } = useGame();
     useEffect(() => {
         const handleScroll = () => {
             setIsScrolled(window.scrollY > 50);
         };
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
-    useEffect(() => {
-        const handleOutsideClick = (event) => {
-            if (!profileMenuRef.current) return;
-            if (!profileMenuRef.current.contains(event.target)) {
-                setIsProfileMenuOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleOutsideClick);
-        return () => document.removeEventListener('mousedown', handleOutsideClick);
     }, []);
     useLayoutEffect(() => {
         const ctx = gsap.context(() => {
@@ -64,43 +52,27 @@ export const Navbar = ({ onMenuToggle, isMenuOpen }) => {
     }, []);
     const navLinks = [
         { href: '/', label: 'Home' },
-        { href: '/learn', label: 'Learn' },
-        { href: '/build', label: 'Build' },
-        { href: '/tasks', label: 'Tasks' },
-        { href: '/contributors', label: 'Honor' },
+        { href: '/how-it-works', label: 'Start here' },
         { href: '/jobs', label: 'Jobs' },
-        { href: '/contact', label: 'Contact' },
+        { href: '/projects', label: 'Projects' },
+        { href: '/leaderboard', label: 'Leaderboard' },
+        { href: '/blog', label: 'Blog' },
+        { href: '/learn', label: 'Learn' },
+        { href: '/tasks', label: 'Tasks' },
     ];
-    return (<nav className={`navbar ${isScrolled ? 'navbar--scrolled' : ''}`} id="mainNav" ref={navRef}>
+    return (<nav className={`navbar ${isScrolled ? 'navbar--scrolled' : ''}`} id="mainNav" ref={navRef} aria-label="Primary">
       <div className="nav-container">
         <div className="nav-center">
-          {navLinks.map((link, index) => (<Link key={index} to={link.href} className={`nav-link ${location.pathname === link.href ? 'nav-link--active' : ''}`}>
+          {navLinks.map((link, index) => (<Link key={index} to={link.href} className={`nav-link ${location.pathname === link.href ? 'nav-link--active' : ''}`} aria-current={location.pathname === link.href ? 'page' : undefined}>
               <span className="nav-link-text">{link.label}</span>
             </Link>))}
         </div>
 
         <div className="nav-right">
-          {user ? (<div className="nav-profile-menu" ref={profileMenuRef}>
-              <button type="button" className="nav-profile-trigger" onClick={() => setIsProfileMenuOpen((prev) => !prev)}>
-                <div className="nav-profile-avatar">
-                  {user.picture ? <img src={user.picture} alt={user.name || 'Profile'} /> : <span>{(user.name || user.email || 'U').charAt(0).toUpperCase()}</span>}
-                </div>
-                <span className="nav-profile-name">{user.name || user.email}</span>
-              </button>
-              {isProfileMenuOpen ? (<div className="nav-profile-dropdown">
-                  <Link to="/profile" className="nav-profile-item" onClick={() => setIsProfileMenuOpen(false)}>
-                    Edit Profile
-                  </Link>
-                  <button type="button" className="nav-profile-item nav-profile-item--danger" onClick={() => {
-                logout();
-                setIsProfileMenuOpen(false);
-            }}>
-                    Logout
-                  </button>
-                </div>) : null}
-            </div>) : (<div className="nav-cta" style={{ display: 'inline-flex', alignItems: 'center' }}>
-              <GoogleSignInButton enabled={!isMenuOpen} width={220} />
-            </div>)}
+          <button type="button" className="sound-toggle" aria-pressed={soundOn} aria-label={soundOn ? 'Turn sounds off' : 'Turn sounds on'} title={soundOn ? 'Sounds on' : 'Sounds off'} onClick={toggleSound}>{soundOn ? '🔊' : '🔇'}</button>
+          <div className="nav-cta" style={{ display: 'inline-flex', alignItems: 'center' }}>
+            <AuthButton />
+          </div>
 
           <div className={`hamburger ${isMenuOpen ? 'hamburger--active' : ''}`} onClick={onMenuToggle} role="button" tabIndex={0} aria-label="Toggle menu" onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {

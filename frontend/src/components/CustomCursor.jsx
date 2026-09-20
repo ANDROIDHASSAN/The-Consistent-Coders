@@ -43,44 +43,37 @@ export const CustomCursor = () => {
             window.addEventListener('mousemove', handleMouseMove);
             window.addEventListener('mousedown', handleMouseDown);
             window.addEventListener('mouseup', handleMouseUp);
-            // Hover targets
-            const hoverTargets = 'a, button, .btn-primary, .magnetic, .craft-card, .work-item, .footer-email, .menu-link, [data-cursor-text]';
+            // Hover state via delegation: works for elements on every page, including ones added later.
+            const hoverTargets = 'a, button, [role=button], .btn-primary, .magnetic, .craft-card, .work-item, .footer-email, .menu-link, [data-cursor-text], summary, select, label';
             const cTextEl = document.getElementById('cursor-text');
-            const handleMouseEnter = (el) => () => {
-                cursorDot.classList.add('hovered');
-                cursorRing.classList.add('hovered');
-                const text = el.getAttribute('data-cursor-text');
-                if (text && cTextEl) {
-                    cTextEl.textContent = text;
-                    cursorRing.classList.add('has-text');
-                    cursorDot.style.opacity = '0';
-                }
+            let current = null;
+            const handleOver = (e) => {
+                const el = e.target.closest?.(hoverTargets) ?? null;
+                if (el === current) return;
+                current = el;
+                cursorDot.classList.toggle('hovered', Boolean(el));
+                cursorRing.classList.toggle('hovered', Boolean(el));
+                const text = el?.getAttribute('data-cursor-text');
+                cursorRing.classList.toggle('has-text', Boolean(text));
+                if (cTextEl) cTextEl.textContent = text || '';
+                cursorDot.style.opacity = text ? '0' : '';
             };
-            const handleMouseLeave = () => {
-                cursorDot.classList.remove('hovered');
-                cursorRing.classList.remove('hovered');
-                cursorRing.classList.remove('has-text');
-                cursorDot.style.opacity = '';
-            };
-            const elements = document.querySelectorAll(hoverTargets);
-            // We must map elements to their handlers to clean up properly
-            elements.forEach((el) => {
-                const boundEnter = handleMouseEnter(el);
-                el._cursorEnter = boundEnter;
-                el._cursorLeave = handleMouseLeave;
-                el.addEventListener('mouseenter', boundEnter);
-                el.addEventListener('mouseleave', handleMouseLeave);
-            });
+            // Hide the follower until the pointer is actually over the page.
+            const show = () => { cursorDot.style.visibility = ''; cursorRing.style.visibility = ''; };
+            const hide = () => { cursorDot.style.visibility = 'hidden'; cursorRing.style.visibility = 'hidden'; };
+            hide();
+            window.addEventListener('mousemove', show, { once: true });
+            document.addEventListener('mouseover', handleOver);
+            document.documentElement.addEventListener('mouseleave', hide);
+            document.documentElement.addEventListener('mouseenter', show);
             return () => {
                 window.removeEventListener('mousemove', handleMouseMove);
                 window.removeEventListener('mousedown', handleMouseDown);
                 window.removeEventListener('mouseup', handleMouseUp);
-                elements.forEach((el) => {
-                    if (el._cursorEnter) {
-                        el.removeEventListener('mouseenter', el._cursorEnter);
-                        el.removeEventListener('mouseleave', el._cursorLeave);
-                    }
-                });
+                window.removeEventListener('mousemove', show);
+                document.removeEventListener('mouseover', handleOver);
+                document.documentElement.removeEventListener('mouseleave', hide);
+                document.documentElement.removeEventListener('mouseenter', show);
             };
         });
         return () => {

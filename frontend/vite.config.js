@@ -8,6 +8,10 @@ export default defineConfig({
         tailwindcss(),
     ],
     base: '/',
+    ssr: {
+        // Bundle everything into the SSR entry so the prerender script needs no node_modules resolution tricks.
+        noExternal: true,
+    },
     build: {
         outDir: 'dist',
         assetsDir: 'assets',

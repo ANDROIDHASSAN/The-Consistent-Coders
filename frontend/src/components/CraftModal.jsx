@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-export const CraftModal = ({ isOpen, onClose, data }) => {
+export const CraftModal = ({ isOpen, onClose, data, progress, onToggleStep, busyStep, signedIn = true }) => {
     const modalRef = useRef(null);
     useEffect(() => {
         if (isOpen) {
@@ -46,10 +46,28 @@ export const CraftModal = ({ isOpen, onClose, data }) => {
               </span>))}
           </div>
           <div className="craft-modal-pitfalls">
-            <h4 className="mono-text"> // WHAT YOU'LL LEARN</h4>
-            <ul id="modalPitfalls">
-              {data.pitfalls.map((pitfall, index) => (<li key={index}>{pitfall}</li>))}
-            </ul>
+            {onToggleStep ? (<>
+                <h4 className="mono-text"> // CHECKPOINTS · +1 EACH · +5 TO FINISH THE PATH</h4>
+                {!signedIn && <p className="craft-modal-hint">Sign in to track your progress and earn Learning points.</p>}
+                <ul className="checkpoints">
+                  {data.pitfalls.map((pitfall, index) => {
+                    const done = Boolean(progress?.done?.[index]);
+                    return (<li key={index}>
+                        <button type="button" className={`checkpoint ${done ? 'is-done' : ''}`} disabled={done || busyStep === index} aria-pressed={done} onClick={() => onToggleStep(data, index)}>
+                          <span className="check" aria-hidden="true">{done ? '✓' : ''}</span>
+                          <span>{pitfall}</span>
+                          <small className="mono-text">{done ? 'DONE' : busyStep === index ? '…' : '+1'}</small>
+                        </button>
+                      </li>);
+                  })}
+                </ul>
+                {progress?.completed && <p className="craft-modal-hint">🎓 Path complete. Your Learning arena thanks you.</p>}
+              </>) : (<>
+                <h4 className="mono-text"> // WHAT YOU'LL LEARN</h4>
+                <ul id="modalPitfalls">
+                  {data.pitfalls.map((pitfall, index) => (<li key={index}>{pitfall}</li>))}
+                </ul>
+              </>)}
           </div>
           <div className="craft-modal-example">
             <h4 className="mono-text"> // REGISTER</h4>

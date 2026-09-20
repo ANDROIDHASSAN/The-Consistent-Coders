@@ -4,7 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import SplitType from 'split-type';
 import { beginnerTrack, intermediateTrack, advancedTrack, resourceFormats } from '../data/craftData.js';
 gsap.registerPlugin(ScrollTrigger);
-export const Craft = ({ onCardClick }) => {
+export const Craft = ({ onCardClick, progress }) => {
     const sectionRef = useRef(null);
     useEffect(() => {
         const ctx = gsap.context(() => {
@@ -93,6 +93,14 @@ export const Craft = ({ onCardClick }) => {
           </h3>
           <p className="craft-card-desc mono-text">{card.libs.split(',').slice(0, 3).join(', ')}</p>
           <div className="craft-card-tag mono-text">{card.tag}</div>
+          {progress?.[card.id] && (() => {
+            const p = progress[card.id];
+            const n = p.done.filter(Boolean).length;
+            return (<div className={`craft-progress ${p.completed ? 'is-done' : ''}`} aria-label={`${n} of ${p.steps} checkpoints done`}>
+                <div className="arena-bar" style={{ '--arena': '#7cc4ff' }}><i style={{ width: `${(n / p.steps) * 100}%` }}/></div>
+                <span className="mono-text">{p.completed ? '🎓 COMPLETED' : `${n}/${p.steps} · +${p.steps - n + 5} PTS LEFT`}</span>
+              </div>);
+          })()}
         </div>
         <div className="craft-card-arrow">↗</div>
       </div>

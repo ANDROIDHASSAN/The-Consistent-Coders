@@ -1,5 +1,12 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Footer } from '../components/Footer';
+import { Breadcrumbs } from '../components/Breadcrumbs';
+import { Cta } from '../components/Cta';
+import { Seo } from '../seo/Seo';
+import { Link } from 'react-router-dom';
+import { apiFetch, useApi } from '../lib/api';
+import { useSession } from '../lib/auth';
+import { useGame } from '../context/GameContext';
 const TASK_LIST = [
     // --- LEVEL 01: FOUNDATION ---
     {
@@ -62,6 +69,34 @@ const CustomSelect = ({ label, options, value, onChange }) => {
 };
 export const TasksPage = () => {
     const [selectedTask, setSelectedTask] = useState(null);
+    const api = useApi();
+    const { isSignedIn } = useSession();
+    const { me, celebrate, toast } = useGame();
+    const [counts, setCounts] = useState({});
+    const [prUrl, setPrUrl] = useState('');
+    const [submitting, setSubmitting] = useState(false);
+    const [justDone, setJustDone] = useState([]);
+    const done = useMemo(() => new Set([...(me?.missions ?? []), ...justDone]), [me?.missions, justDone]);
+    useEffect(() => {
+        apiFetch('/missions/stats').then((r) => setCounts(r.completions)).catch(() => {});
+    }, []);
+    const completeMission = async (e) => {
+        e.preventDefault();
+        setSubmitting(true);
+        try {
+            const res = await api(`/missions/${selectedTask.id}/complete`, { method: 'POST', body: { prUrl } });
+            setJustDone((d) => [...d, selectedTask.id]);
+            if (!res.duplicate) setCounts((c) => ({ ...c, [selectedTask.id]: (c[selectedTask.id] ?? 0) + 1 }));
+            setPrUrl('');
+            await celebrate(res.reward, `mission ${selectedTask.id} complete`);
+        }
+        catch (err) {
+            toast(err.message, { kind: 'error', sound: 'error' });
+        }
+        finally {
+            setSubmitting(false);
+        }
+    };
     const [search, setSearch] = useState('');
     const [filterPriority, setFilterPriority] = useState('All');
     const [filterLevel, setFilterLevel] = useState('All');
@@ -75,10 +110,14 @@ export const TasksPage = () => {
             return ms && mp && ml && mt;
         });
     }, [search, filterPriority, filterLevel, filterType]);
-    return (<div className="tasks-page theme-black">
+    return (<>
+      <Seo title="Mission Board — Open Tasks to Build the Platform" description="Pick a mission, ship it, earn EXP. Open coding and non-coding tasks for building The Consistent Coders platform, from beginner to advanced." path="/tasks" jsonLd={Breadcrumbs.schema([{ name: 'Tasks', path: '/tasks' }])} />
+      <div className="tasks-page theme-black">
       <header className="tasks-header">
+        <Breadcrumbs items={[{ name: 'Tasks', path: '/tasks' }]} />
         <h1 className="serif-text accent-text tasks-title">The Mission Board</h1>
-        <p className="mono-text tasks-subtitle">{filteredTasks.length} AUDITED MISSIONS // SCALE READY</p>
+        <p className="mono-text tasks-subtitle">{filteredTasks.length} MISSIONS // +2 BUILDING PTS EACH // {done.size} COMPLETED BY YOU</p>
+        <p className="tasks-howto">🛠️ Pick a mission → build it → open a pull request → paste the PR link here for <b>+2 points</b> in the <Link to="/leaderboard?arena=build">Building arena</Link>.</p>
       </header>
       
       <section className="filters-section">
@@ -94,7 +133,7 @@ export const TasksPage = () => {
 
       <section className="tasks-list-section">
          <div className="tasks-list-container">
-            {filteredTasks.length > 0 ? (filteredTasks.map(t => (<div key={t.id} onClick={() => setSelectedTask(t)} className="task-row">
+            {filteredTasks.length > 0 ? (filteredTasks.map(t => (<div key={t.id} onClick={() => setSelectedTask(t)} className={`task-row ${done.has(t.id) ? 'is-done' : ''}`}>
                      <span className="mono-text task-id">{t.id}</span>
                      <div className="task-main">
                         <h3 className="task-row-title">{t.title}</h3>
@@ -103,7 +142,7 @@ export const TasksPage = () => {
                      <div className="task-priority-wrapper">
                         <span className={`mono-text priority-tag priority-${t.priority.toLowerCase()}`}>{t.priority.toUpperCase()}</span>
                      </div>
-                     <span className="mono-text accent-text task-reward">{t.reward}</span>
+                     <span className="mono-text accent-text task-reward">{done.has(t.id) ? '✓ DONE' : '+2 PTS'}{counts[t.id] ? <small className="task-count">👥 {counts[t.id]}</small> : null}</span>
                   </div>))) : (<div className="no-tasks">NO MISSIONS FOUND FOR THIS QUERY</div>)}
          </div>
       </section>
@@ -121,13 +160,20 @@ export const TasksPage = () => {
                   <div className="body-context">{selectedTask.realWorld}</div>
                </div>
                <div className="modal-footer">
-                  <a href="https://github.com/ANDROIDHASSAN/The-Consistent-Coders" target="_blank" rel="noopener noreferrer" className="btn-primary btn-large">
-                     <span className="btn-text">INITIALIZE MISSION ↝</span>
-                     <div className="btn-bg"></div>
-                  </a>
+                  <p className="mono-text mission-meta">{selectedTask.id} · {counts[selectedTask.id] ?? 0} MEMBER{counts[selectedTask.id] === 1 ? '' : 'S'} COMPLETED · +2 BUILDING PTS</p>
+                  {done.has(selectedTask.id) ? (
+                     <p className="mission-done">✓ You completed this mission. Pick another one to keep climbing.</p>
+                  ) : isSignedIn ? (
+                     <form className="mission-form" onSubmit={completeMission}>
+                        <input type="url" required placeholder="https://github.com/org/repo/pull/12" value={prUrl} onChange={(e) => setPrUrl(e.target.value)} aria-label="Pull request link" />
+                        <button type="submit" className="btn-primary" disabled={submitting}><span className="btn-text">{submitting ? 'SUBMITTING…' : 'SUBMIT PR (+2)'}</span><div className="btn-bg"></div></button>
+                     </form>
+                  ) : <p className="mission-done">Sign in to claim missions and earn Building points.</p>}
+                  <a href="https://github.com/ANDROIDHASSAN/The-Consistent-Coders" target="_blank" rel="noopener noreferrer" className="btn-ghost btn-sm" style={{ marginTop: '1rem' }}>OPEN THE REPO ↗</a>
                </div>
             </div>
          </div>)}
+      <Cta title="Prefer a paid mission?" text="The job directory has real roles from real companies. Applying earns a point too." />
       <Footer />
 
       <style>{`
@@ -400,5 +446,6 @@ export const TasksPage = () => {
             }
          }
       `}</style>
-    </div>);
+    </div>
+    </>);
 };

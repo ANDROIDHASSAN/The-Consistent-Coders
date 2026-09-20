@@ -42,7 +42,6 @@ body {
   color: var(--color-white);
   overflow-x: hidden;
   font-variation-settings: "wght" 400;
-  cursor: none;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -103,7 +102,7 @@ ul {
   background: var(--color-accent);
   border-radius: 50%;
   pointer-events: none;
-  z-index: 10000;
+  z-index: 2147483001;
   transform: translate(-50%, -50%);
   will-change: transform;
   transition: width 0.25s var(--ease-elastic), height 0.25s var(--ease-elastic), background 0.3s;
@@ -131,7 +130,7 @@ ul {
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
   pointer-events: none;
-  z-index: 9999;
+  z-index: 2147483000;
   transform: translate(-50%, -50%);
   will-change: transform;
   transition: width 0.4s var(--ease-out-expo), height 0.4s var(--ease-out-expo), opacity 0.3s, border-color 0.3s;

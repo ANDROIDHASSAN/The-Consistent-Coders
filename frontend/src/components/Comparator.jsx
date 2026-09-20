@@ -1,8 +1,8 @@
 import React, { useLayoutEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import beforeTccImg from '../assets/images/before/after tcc/beforetcc.png';
-import afterTccImg from '../assets/images/before/after tcc/after tcc.png';
+import beforeTccImg from '../assets/images/before/after tcc/beforetcc.webp';
+import afterTccImg from '../assets/images/before/after tcc/after tcc.webp';
 gsap.registerPlugin(ScrollTrigger);
 export const Comparator = () => {
     const afterWrapperRef = useRef(null);
@@ -62,9 +62,9 @@ export const Comparator = () => {
     }, []);
     return (<section className="section-comparator theme-dark" ref={sectionRef}>
       <div className="comparator-inner reveal-fade">
-        <img src={beforeTccImg} className="comp-img comp-before" crossOrigin="anonymous" alt="Before TCC"/>
+        <img src={beforeTccImg} className="comp-img comp-before" crossOrigin="anonymous" alt="A developer before joining The Consistent Coders" loading="lazy"/>
         <div className="comp-after-wrapper" ref={afterWrapperRef}>
-          <img src={afterTccImg} className="comp-img comp-after" crossOrigin="anonymous" alt="After TCC"/>
+          <img src={afterTccImg} className="comp-img comp-after" crossOrigin="anonymous" alt="A developer after joining The Consistent Coders" loading="lazy"/>
         </div>
         <div className="comp-handle" ref={handleRef}></div>
         <div className="comp-dynamic-text" id="compDynamicText" ref={textRef}>

@@ -1,0 +1,77 @@
+// Blog post metadata. Plain JS (no JSX) so the backend sitemap can import it too.
+// The post body lives in ./posts/<slug>.jsx and is registered in ./index.js.
+
+export const BLOG_POSTS = [
+    {
+        slug: 'how-to-get-your-first-developer-job-in-india',
+        title: 'How to Get Your First Developer Job in India (2026 Guide)',
+        description: 'A step-by-step roadmap for freshers and students to land a first software developer job in India: skills, projects, portfolio, applications and interviews.',
+        category: 'Career',
+        readingTime: 9,
+        publishedAt: '2026-09-01',
+        updatedAt: '2026-09-15',
+        tags: ['fresher jobs', 'developer career', 'india'],
+    },
+    {
+        slug: 'best-projects-for-fresher-resume',
+        title: '7 Projects That Actually Get Freshers Hired (With Tech Stacks)',
+        description: 'Skip the to-do app. These seven portfolio projects show real engineering judgement and are the ones recruiters ask about in interviews.',
+        category: 'Projects',
+        readingTime: 7,
+        publishedAt: '2026-09-03',
+        updatedAt: '2026-09-03',
+        tags: ['portfolio', 'projects', 'resume'],
+    },
+    {
+        slug: 'internship-vs-full-time-fresher',
+        title: 'Internship vs Full-Time as a Fresher: Which Should You Take?',
+        description: 'When an internship beats a full-time offer, when it does not, and how to convert an internship into a job. Written for students in India.',
+        category: 'Career',
+        readingTime: 6,
+        publishedAt: '2026-09-05',
+        updatedAt: '2026-09-05',
+        tags: ['internship', 'full-time', 'decision'],
+    },
+    {
+        slug: 'remote-developer-jobs-for-students',
+        title: 'Remote Developer Jobs for Students: Where to Find Them and How to Get One',
+        description: 'The best places to find legitimate remote developer jobs and internships as a student, how to filter scams, and what a remote-ready profile looks like.',
+        category: 'Jobs',
+        readingTime: 8,
+        publishedAt: '2026-09-08',
+        updatedAt: '2026-09-08',
+        tags: ['remote jobs', 'students', 'internships'],
+    },
+    {
+        slug: 'how-to-write-a-job-post-that-gets-applicants',
+        title: 'How to Write a Job Post That Gets Great Applicants (Template Inside)',
+        description: 'Posting a job? Here is the exact structure, the words that attract strong candidates, and a copy-paste template you can use on The Consistent Coders.',
+        category: 'Hiring',
+        readingTime: 5,
+        publishedAt: '2026-09-10',
+        updatedAt: '2026-09-10',
+        tags: ['hiring', 'job post', 'recruiting'],
+    },
+    {
+        slug: 'github-profile-that-gets-you-hired',
+        title: 'The GitHub Profile That Gets You Hired: A Checklist',
+        description: 'Recruiters spend 30 seconds on your GitHub. Here is exactly what they look at, what to pin, how to write READMEs, and what to delete.',
+        category: 'Portfolio',
+        readingTime: 6,
+        publishedAt: '2026-09-12',
+        updatedAt: '2026-09-12',
+        tags: ['github', 'portfolio', 'open source'],
+    },
+    {
+        slug: 'cold-email-template-for-developer-referrals',
+        title: 'Cold Email Templates for Developer Referrals That Actually Get Replies',
+        description: 'Three short cold-email templates for asking engineers for referrals, with the psychology behind each line and the mistakes that get you ignored.',
+        category: 'Career',
+        readingTime: 5,
+        publishedAt: '2026-09-14',
+        updatedAt: '2026-09-14',
+        tags: ['referrals', 'networking', 'cold email'],
+    },
+];
+
+export const getPostMeta = (slug) => BLOG_POSTS.find((p) => p.slug === slug) ?? null;
