@@ -29,6 +29,8 @@ export const apiFetch = async (path, { token, method = 'GET', body } = {}) => {
     if (!response.ok || data?.success === false) {
         throw new ApiError(data?.message || `Request failed (${response.status}).`, response.status);
     }
+    // A 200 with a non-JSON body means the API isn't mounted (SPA fallback answered instead).
+    if (data === null) throw new ApiError('API is unavailable right now. Try again in a minute.', 503);
     return data;
 };
 
