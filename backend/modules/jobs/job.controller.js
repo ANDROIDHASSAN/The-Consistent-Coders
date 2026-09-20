@@ -3,11 +3,28 @@ import {
     applyToJob, createJob, getJobBySlug, listApplicants, listJobs, parseJobInput, updateJob,
 } from './job.service.js';
 import { awardPoints } from '../points/points.service.js';
+import { extractJobFromText, extractJobFromUrl } from './job.extract.js';
 
 const fail = (res, status, message) => res.status(status).json({ success: false, message });
 
 export const getJobOptions = (req, res) => {
     res.json({ success: true, types: JOB_TYPES, workModes: WORK_MODES, experience: EXPERIENCE_LEVELS });
+};
+
+// Paste-to-fill: { text } or { url } → a draft for the post-job form.
+export const extractJob = async (req, res, next) => {
+    try {
+        const text = String(req.body?.text ?? '').trim().slice(0, 20000);
+        const url = String(req.body?.url ?? '').trim() || (/^https?:\/\/\S+$/i.test(text) ? text : '');
+        if (!url && text.length < 20) return fail(res, 400, 'Paste the job post text or a link first.');
+        const draft = url ? await extractJobFromUrl(url) : extractJobFromText(text);
+        res.json({ success: true, draft });
+    }
+    catch (error) {
+        if (error.name === 'TimeoutError') return fail(res, 504, 'That page took too long to load. Paste the job text instead.');
+        if (error instanceof TypeError || /^(Only public|That does not|Could not read)/.test(error.message)) return fail(res, 400, error.message.startsWith('fetch failed') ? 'Could not reach that link. Paste the job text instead.' : error.message);
+        next(error);
+    }
 };
 
 export const getJobs = async (req, res, next) => {
