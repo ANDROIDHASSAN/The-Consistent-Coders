@@ -2,6 +2,7 @@ import { Job, Quest, Suggestion, QUEST_STAGES, PROOF_STAGES } from './job.model.
 import { isExpired, toQuest } from './job.service.js';
 import { linkedinPost } from './job.extract.js';
 import { awardPoints, POINT_RULES } from '../points/points.service.js';
+import { isPlaceholder } from '../../../frontend/src/content/jobCategories.js';
 
 const fail = (res, status, message) => res.status(status).json({ success: false, message });
 const DAY_MS = 86400000;
@@ -110,9 +111,12 @@ export const toggleInsider = async (req, res, next) => {
         }
         // Cheap anti-farming check: your profile's org has to name the company.
         // ponytail: string match, not proof of employment; add work-email verification if people game it.
-        const org = String(req.user.org ?? '').toLowerCase().trim();
-        const company = job.company.toLowerCase().trim();
-        if (!org || !(org.includes(company) || company.includes(org))) {
+        // Whole words only, 3+ chars: an org of "a" or "inc" must not match every company.
+        const words = (s) => ` ${String(s ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()} `;
+        const org = words(req.user.org);
+        const company = words(job.company);
+        const [short, long] = org.length < company.length ? [org, company] : [company, org];
+        if (isPlaceholder(job.company) || short.trim().length < 3 || !long.includes(short)) {
             return fail(res, 400, `Set your company to "${job.company}" in your profile first, so members know you really work there.`);
         }
         const note = String(req.body?.note ?? '').trim().slice(0, 200);
