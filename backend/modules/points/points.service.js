@@ -18,6 +18,13 @@ export const POINT_RULES = {
     applicant_reviewed: { points: 1, track: 'hire', counter: 'reviewsGiven', label: 'Review an applicant' },
     job_applied: { points: 1, track: 'apply', counter: 'applicationsSent', label: 'Apply to a job' },
     shortlisted: { points: 2, track: 'apply', counter: 'shortlists', label: 'Get shortlisted' },
+    reached_out: { points: 1, track: 'apply', counter: 'reachOuts', label: 'Reach out for a job' },
+    early_bird: { points: 2, track: 'apply', counter: null, label: 'Reach out within 24h of a job going live' },
+    got_reply: { points: 3, track: 'apply', counter: 'replies', label: 'Hear back from a company' },
+    got_interview: { points: 10, track: 'apply', counter: 'interviews', label: 'Land an interview' },
+    got_offer: { points: 50, track: 'apply', counter: 'offers', label: 'Get an offer (verified by an admin)' },
+    job_suggested: { points: 2, track: 'hire', counter: 'suggestionsApproved', label: 'Suggest a job that gets listed' },
+    insider_referral: { points: 2, track: 'hire', counter: 'referralsOffered', label: 'Offer a referral at your company' },
     profile_completed: { points: 1, track: 'general', counter: null, label: 'Add a profile headline (once)' },
     daily_login: { points: 1, track: 'general', counter: null, label: 'Daily check-in' },
 };
@@ -61,6 +68,12 @@ const BADGES = [
     ['first_apply', 'First Application', '🚀', (u) => u.applicationsSent >= 1],
     ['hustler', 'Hustler', '🔥', (u) => u.applicationsSent >= 10],
     ['shortlisted', 'Shortlisted', '⭐', (u) => u.shortlists >= 1],
+    ['first_reach', 'First Reach-out', '👋', (u) => u.reachOuts >= 1],
+    ['got_reply', 'Got a Reply', '💬', (u) => u.replies >= 1],
+    ['interviewing', 'Interviewing', '🎤', (u) => u.interviews >= 1],
+    ['offer_club', 'Offer Club', '🏅', (u) => u.offers >= 1],
+    ['insider', 'Insider', '🤝', (u) => u.referralsOffered >= 1],
+    ['scout', 'Scout', '🛰️', (u) => u.suggestionsApproved >= 3],
     ['first_lesson', 'First Lesson', '📖', (u) => u.lessonsDone >= 1],
     ['path_complete', 'Path Complete', '🎓', (u) => u.pathsDone >= 1],
     ['scholar', 'Scholar', '🧠', (u) => u.pathsDone >= 3],
@@ -74,7 +87,8 @@ const BADGES = [
 
 const withDefaults = (u) => ({
     points: 0, streak: 0, jobsPosted: 0, applicationsSent: 0, reviewsGiven: 0, shortlists: 0,
-    lessonsDone: 0, pathsDone: 0, projectsSubmitted: 0, upvotesReceived: 0, missionsDone: 0, ...u,
+    lessonsDone: 0, pathsDone: 0, projectsSubmitted: 0, upvotesReceived: 0, missionsDone: 0,
+    reachOuts: 0, replies: 0, interviews: 0, offers: 0, suggestionsApproved: 0, referralsOffered: 0, ...u,
 });
 
 export const badgesFor = (user) => {
@@ -127,7 +141,7 @@ export const touchDailyActivity = async (user) => {
 };
 
 const WEEK_MS = 7 * 86400000;
-const PUBLIC_FIELDS = 'name picture headline points trackPoints jobsPosted applicationsSent streak lessonsDone pathsDone projectsSubmitted upvotesReceived missionsDone reviewsGiven shortlists';
+const PUBLIC_FIELDS = 'name picture headline points trackPoints jobsPosted applicationsSent streak lessonsDone pathsDone projectsSubmitted upvotesReceived missionsDone reviewsGiven shortlists reachOuts replies interviews offers suggestionsApproved referralsOffered';
 
 const toRow = (u, i, score) => ({
     rank: i + 1,

@@ -1,10 +1,12 @@
 // Single source of truth for every static, indexable URL.
 // Used by: the build-time prerender, the sitemap, and the navigation.
 // Plain JS on purpose (no JSX) so the backend can import it for the sitemap.
+import { JOB_CATEGORIES } from './jobCategories.js';
 
 export const STATIC_ROUTES = [
     { path: '/', name: 'Home', changefreq: 'daily', priority: '1.0' },
     { path: '/jobs', name: 'Jobs', changefreq: 'hourly', priority: '0.9' },
+    ...JOB_CATEGORIES.map((c) => ({ path: `/jobs/category/${c.slug}`, name: `${c.name} jobs`, changefreq: 'daily', priority: '0.8' })),
     { path: '/jobs/new', name: 'Post a Job', changefreq: 'monthly', priority: '0.6' },
     { path: '/how-it-works', name: 'How it works', changefreq: 'monthly', priority: '0.8' },
     { path: '/projects', name: 'Projects', changefreq: 'daily', priority: '0.8' },

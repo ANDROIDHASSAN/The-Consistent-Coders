@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { SignInButton } from '@clerk/react';
 import { Seo } from '../seo/Seo';
 import { Breadcrumbs } from '../components/Breadcrumbs';
@@ -8,6 +8,7 @@ import { Footer } from '../components/Footer';
 import { useApi } from '../lib/api';
 import { CLERK_ENABLED, useSession } from '../lib/auth';
 import { useGame } from '../context/GameContext';
+import { JOB_CATEGORIES } from '../content/jobCategories';
 
 const TYPES = ['Full-time', 'Part-time', 'Internship', 'Contract', 'Freelance'];
 const MODES = ['Remote', 'Hybrid', 'On-site'];
@@ -16,7 +17,14 @@ const LEVELS = ['Fresher', 'Junior', 'Mid', 'Senior'];
 const EMPTY = {
     title: '', company: '', companyUrl: '', type: 'Full-time', workMode: 'Remote', experience: 'Fresher',
     location: 'Remote', salary: '', skills: '', description: '', applyUrl: '', deadline: '',
+    sourceUrl: '', posterName: '', posterUrl: '', companyLinkedin: '', contactEmails: '', category: '',
 };
+
+// API shape (nested poster, email list) → flat form fields, and back.
+const reachOutToForm = (j) => ({
+    sourceUrl: j.sourceUrl || '', posterName: j.poster?.name || '', posterUrl: j.poster?.profileUrl || '',
+    companyLinkedin: j.companyLinkedin || '', contactEmails: (j.contactEmails || []).join(', '),
+});
 
 const TEMPLATE = `What you'll do:
 -
@@ -53,41 +61,50 @@ export const PostJobPage = () => {
     const [filling, setFilling] = useState(false);
     const [filled, setFilled] = useState(null); // { count, missing[] } after a successful autofill
     const [pasteError, setPasteError] = useState('');
+    const [duplicateOf, setDuplicateOf] = useState(null); // slug of a listing already made from this LinkedIn post
 
     useEffect(() => {
         if (editing) return;
         try { localStorage.setItem(DRAFT_KEY, JSON.stringify(form)); } catch { /* private mode */ }
     }, [form, editing]);
 
+    const latestFill = useRef(0); // only the newest paste may fill the form; a slower older one is dropped
     const autofill = async (raw) => {
         const text = String(raw ?? paste).trim();
         if (text.length < 10) return;
         if (!isSignedIn) { setFilled({ pending: true }); return; } // draft is saved; we fill right after sign-in
+        const mine = ++latestFill.current;
         setFilling(true);
         setPasteError('');
+        setDuplicateOf(null);
         try {
             const { draft } = await api('/jobs/extract', { method: 'POST', body: /^https?:\/\/\S+$/i.test(text) ? { url: text } : { text } });
+            if (mine !== latestFill.current) return;
             const next = {
                 ...EMPTY,
                 ...draft,
                 skills: (draft.skills || []).join(', '),
                 description: draft.description || '',
                 applyUrl: draft.applyUrl || '',
-                company: draft.company || org || '',
+                company: draft.company || 'Not available',
+                ...reachOutToForm(draft),
             };
-            delete next.sourceUrl;
+            delete next.poster;
+            delete next.duplicateOf;
             setForm(next);
+            setDuplicateOf(draft.duplicateOf || null);
             const missing = REQUIRED.filter((k) => !next[k] || (k === 'description' && next[k].length < 80));
             setFilled({ count: Object.keys(EMPTY).filter((k) => next[k] && next[k] !== EMPTY[k]).length, missing });
             play(missing.length ? 'click' : 'success');
             setTimeout(() => document.getElementById(missing[0] || 'publish')?.focus(), 50);
         }
         catch (err) {
+            if (mine !== latestFill.current) return;
             setFilled(null);
             setPasteError(err.message);
             play('error');
         }
-        finally { setFilling(false); }
+        finally { if (mine === latestFill.current) setFilling(false); }
     };
 
     // Pasted before sign-in → fill as soon as the session lands.
@@ -102,6 +119,18 @@ export const PostJobPage = () => {
         if (!editing && org) setForm((f) => (f.company ? f : { ...f, company: org }));
     }, [editing, org]);
 
+    // Admin publishing a member's suggestion: prefill from its text, credit the member on publish.
+    const [params] = useSearchParams();
+    const suggestionId = editing ? null : params.get('suggestion');
+    useEffect(() => {
+        if (!suggestionId || !isSignedIn) return;
+        api(`/jobs/suggestions/${suggestionId}`).then(({ suggestion }) => {
+            setPaste(suggestion.text);
+            autofill(suggestion.text);
+        }).catch((err) => setError(err.message));
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- once per suggestion
+    }, [suggestionId, isSignedIn]);
+
     useEffect(() => {
         if (!editing || !isLoaded) return;
         api(`/jobs/${slug}`).then((res) => {
@@ -111,6 +140,7 @@ export const PostJobPage = () => {
                 title: j.title, company: j.company, companyUrl: j.companyUrl, type: j.type, workMode: j.workMode,
                 experience: j.experience, location: j.location, salary: j.salary, skills: j.skills.join(', '),
                 description: j.description, applyUrl: j.applyUrl, deadline: j.deadline ? j.deadline.slice(0, 10) : '',
+                category: j.category || '', ...reachOutToForm(j),
             });
         }).catch((err) => setError(err.message));
     }, [api, editing, slug, isLoaded]);
@@ -122,7 +152,15 @@ export const PostJobPage = () => {
         setBusy(true);
         setError('');
         try {
-            const body = { ...form, skills: form.skills.split(',').map((s) => s.trim()).filter(Boolean), deadline: form.deadline || null };
+            const { posterName, posterUrl, ...rest } = form;
+            const body = {
+                ...rest,
+                skills: form.skills.split(',').map((s) => s.trim()).filter(Boolean),
+                deadline: form.deadline || null,
+                poster: { name: posterName, profileUrl: posterUrl },
+                contactEmails: form.contactEmails.split(',').map((s) => s.trim()).filter(Boolean),
+                ...(suggestionId ? { suggestionId } : {}),
+            };
             if (editing) {
                 const res = await api(`/jobs/${jobId}`, { method: 'PATCH', body });
                 toast('Job updated.', { kind: 'success', sound: 'success' });
@@ -172,6 +210,11 @@ export const PostJobPage = () => {
                         <p className="empty">Sign-in isn't configured yet (missing <code>VITE_CLERK_PUBLISHABLE_KEY</code>).</p>
                     ) : !isLoaded ? (
                         <div className="skeleton" />
+                    ) : !editing && me && !me.isAdmin ? (
+                        <div className="panel">
+                            <p style={{ marginBottom: '1rem' }}>Admins post jobs here, so every listing is checked. <strong>Found a job?</strong> Suggest it and earn <strong style={{ color: 'var(--color-accent)' }}>+2 points</strong> when it goes live.</p>
+                            <Link to="/jobs#suggest" className="btn-ghost">Suggest a job →</Link>
+                        </div>
                     ) : (
                         <form className="panel" onSubmit={submit}>
                             {!editing && (
@@ -180,10 +223,22 @@ export const PostJobPage = () => {
                                         <span>Paste the job post or a link <b className="paste-kbd">⌘V</b></span>
                                         <textarea
                                             rows={4}
-                                            placeholder={'🚨 Hiring – Backend Engineer (Freshers)\nCompany: Work360\nSkills: Java / Python / Node.js\nApply: https://…\n\n…or just a LinkedIn / careers-page link'}
+                                            placeholder={'🚨 Hiring – Backend Engineer (Freshers)\nCompany: Work360\nSkills: Java / Python / Node.js\nApply: https://…\n\nLinkedIn post? Copy its text, then add the post link (⋯ → Copy link to post) at the end.'}
                                             value={paste}
                                             onChange={(e) => setPaste(e.target.value)}
-                                            onPaste={(e) => { const t = e.clipboardData.getData('text'); if (t.trim()) { setPaste(t); setTimeout(() => autofill(t), 0); } }}
+                                            onPaste={(e) => {
+                                                const t = e.clipboardData.getData('text');
+                                                if (!t.trim()) return;
+                                                e.preventDefault();
+                                                const el = e.currentTarget;
+                                                const lone = /^\s*https?:\/\/\S+\s*$/i;
+                                                // A new link over a lone link replaces it; anything else goes in at the cursor.
+                                                if (lone.test(el.value) && lone.test(t)) el.select();
+                                                const next = el.value.slice(0, el.selectionStart) + t + el.value.slice(el.selectionEnd);
+                                                // insertText keeps ⌘Z working and fires onChange; set state directly where it is unsupported.
+                                                if (!document.execCommand?.('insertText', false, t)) setPaste(next);
+                                                setTimeout(() => autofill(next), 0);
+                                            }}
                                         />
                                     </label>
                                     <div className="paste-actions">
@@ -200,6 +255,7 @@ export const PostJobPage = () => {
                                         )}
                                     </div>
                                     {pasteError && <p className="form-error" role="alert" style={{ marginBottom: 0 }}>{pasteError}</p>}
+                                    {duplicateOf && <p className="form-error" role="alert" style={{ marginBottom: 0 }}>This LinkedIn post is already on the board. <Link to={`/jobs/${duplicateOf}`}>View the listing →</Link></p>}
                                 </div>
                             )}
                             <div className="form-grid">
@@ -214,6 +270,13 @@ export const PostJobPage = () => {
                             <div className="form-grid">
                                 <label className="field"><span>Location *</span><input id="location" required maxLength={120} placeholder="Bengaluru / Remote (India)" value={form.location} onChange={update('location')} /></label>
                                 <label className="field"><span>Salary / stipend</span><input maxLength={80} placeholder="₹6–8 LPA or ₹15K/month" value={form.salary} onChange={update('salary')} /></label>
+                                <label className="field">
+                                    <span>Category</span>
+                                    <select value={form.category} onChange={update('category')}>
+                                        <option value="">Auto-detect from title &amp; skills</option>
+                                        {JOB_CATEGORIES.map((c) => <option key={c.slug} value={c.slug}>{c.icon} {c.name}</option>)}
+                                    </select>
+                                </label>
                             </div>
                             <label className="field">
                                 <span>Skills (comma separated)</span>
@@ -229,6 +292,19 @@ export const PostJobPage = () => {
                                 <label className="field"><span>Company website (optional)</span><input type="url" placeholder="https://company.com" value={form.companyUrl} onChange={update('companyUrl')} /></label>
                             </div>
                             <label className="field"><span>Application deadline (optional)</span><input type="date" value={form.deadline} onChange={update('deadline')} /></label>
+                            <fieldset className="field" style={{ border: '1px solid var(--line-strong)', borderRadius: 8, padding: '1rem' }}>
+                                <legend style={{ padding: '0 0.5rem' }}>Reach-out kit (optional, shown to signed-in members only)</legend>
+                                <div className="form-grid">
+                                    <label className="field"><span>LinkedIn post link</span><input type="url" placeholder="https://www.linkedin.com/posts/…" value={form.sourceUrl} onChange={update('sourceUrl')} /></label>
+                                    <label className="field"><span>Company LinkedIn page</span><input type="url" placeholder="https://www.linkedin.com/company/…" value={form.companyLinkedin} onChange={update('companyLinkedin')} /></label>
+                                </div>
+                                <div className="form-grid">
+                                    <label className="field"><span>Post author's name</span><input maxLength={80} placeholder="Rahul Sharma" value={form.posterName} onChange={update('posterName')} /></label>
+                                    <label className="field"><span>Post author's LinkedIn profile</span><input type="url" placeholder="https://www.linkedin.com/in/…" value={form.posterUrl} onChange={update('posterUrl')} /></label>
+                                </div>
+                                <label className="field"><span>Contact emails from the post (comma separated, max 5)</span><input placeholder="hr@company.com" value={form.contactEmails} onChange={update('contactEmails')} /></label>
+                                <span className="field-hint">Only what the post itself shares. Founder, recruiter and HR search links are added automatically.</span>
+                            </fieldset>
                             {error && <p className="form-error" role="alert">{error}</p>}
                             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
                                 {isSignedIn ? (

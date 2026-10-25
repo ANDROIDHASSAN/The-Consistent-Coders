@@ -41,6 +41,13 @@ const userSchema = new mongoose.Schema({
     missionsDone: { type: Number, default: 0 },
     reviewsGiven: { type: Number, default: 0 },
     shortlists: { type: Number, default: 0 },
+    // Job Quest counters.
+    reachOuts: { type: Number, default: 0 },
+    replies: { type: Number, default: 0 },
+    interviews: { type: Number, default: 0 },
+    offers: { type: Number, default: 0 },
+    suggestionsApproved: { type: Number, default: 0 },
+    referralsOffered: { type: Number, default: 0 },
     // Progress state: "pathId:stepIndex" checkpoints and completed mission ids.
     learned: { type: [String], default: [] },
     missions: { type: [String], default: [] },
