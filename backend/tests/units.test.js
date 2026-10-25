@@ -82,6 +82,14 @@ test('a multi-role LinkedIn post becomes a clean draft', () => {
     assert.equal(ogText('Backend Developer at Acme', 'Node.js role, 2 yrs.'), 'Backend Developer at Acme\n\nNode.js role, 2 yrs.');
 });
 
+test('the title drops the company in front and the work mode behind it', () => {
+    const draft = extractJobFromText(ogText('Klimb, Associate Product Manager, Remote | Anmol kaur', 'We are growing and looking for people to join our team at Klimb. Fully remote internship.', 'Anmol kaur'));
+    assert.equal(draft.company, 'Klimb');
+    assert.equal(draft.title, 'Associate Product Manager');
+    assert.equal(draft.workMode, 'Remote');
+    assert.equal(extractJobFromText('Remote\nWork from home role at Acme.').title, 'Remote', 'a title that is only the mode stays');
+});
+
 test('salary text becomes a number range Google accepts', () => {
     assert.deepEqual(salaryRange('₹20,000–35,000 per month'), { min: 20000, max: 35000, unit: 'MONTH' });
     assert.deepEqual(salaryRange('₹6–8 LPA'), { min: 600000, max: 800000, unit: 'YEAR' });
