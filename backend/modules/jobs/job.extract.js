@@ -151,6 +151,7 @@ export const extractJobFromText = (raw) => {
     else out.experience = 'Fresher';
 
     // "Klimb, Associate Product Manager, Remote" → "Associate Product Manager": company and work mode have their own fields.
+    out.title = out.title.slice(0, 300); // bounds the cleanup regexes below on a pasted wall of text
     if (out.company !== NOT_AVAILABLE) out.title = out.title.replace(new RegExp(`^${escapeRx(out.company)}\\s*[,:|–-]\\s*`, 'i'), '');
     out.title = out.title.replace(/\s*[,|(–-]\s*(?:remote|hybrid|on[- ]?site|wfh)\)?$/i, '');
     out.title = out.title.slice(0, 120);
@@ -266,8 +267,10 @@ export const extractJobFromUrl = async (url) => {
     if (!res.ok) throw new Error('Could not read that page. Paste the job text instead.');
     const html = await readCapped(res, 512 * 1024);
     // LinkedIn can end og:title with a count ("… | Anmol Kaur | 12 comments"); that segment is not the author.
-    const title = (meta(html, 'og:title') || decodeEntities((html.match(/<title[^>]*>([^<]*)<\/title>/i) || ['', ''])[1]))
-        .replace(/(?:\s*\|\s*[\d,.]+[km]?\+?\s+[a-z]+)+\s*$/i, '');
+    // Segment by segment, not one repeated-group regex: that backtracks for minutes on a crafted 500KB title.
+    const parts = (meta(html, 'og:title') || decodeEntities((html.match(/<title[^>]*>([^<]*)<\/title>/i) || ['', ''])[1])).split('|');
+    while (parts.length > 1 && /^\s*[\d,.]+[km]?\+?\s+[a-z]+\s*$/i.test(parts.at(-1))) parts.pop();
+    const title = parts.join('|');
     const desc = meta(html, 'og:description') || meta(html, 'description');
     if (!title && !desc) throw new Error('Could not read that page. Paste the job text instead.');
     if (/^(?:linkedin login|sign in|sign up|log in|join linkedin)\b/i.test(title) || /\/(?:login|authwall|signup)\b/.test(target.pathname)) {
