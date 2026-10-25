@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { Job } from '../jobs/job.model.js';
-import { listJobs, openFilter, openSkills } from '../jobs/job.service.js';
+import { isExpired, listJobs, openFilter, openSkills } from '../jobs/job.service.js';
 import { buildSitemap, loadShell, renderJobPage, renderListPage } from './seo.service.js';
+import { jobOgImage } from './seo.og.js';
 import { STATIC_ROUTES } from '../../../frontend/src/content/siteRoutes.js';
 import { BLOG_POSTS } from '../../../frontend/src/content/blog/meta.js';
 import { CITIES, categoryOf, cityBySlug, cityOf, companyPage, isPlaceholder, listPageTitle, skillSlug, slugify } from '../../../frontend/src/content/jobCategories.js';
@@ -122,6 +123,24 @@ router.get('/render/city/:slug', async (req, res, next) => {
             noindex: items.length < MIN_INDEX_JOBS,
             siblings: CITIES.filter((c) => c.slug !== city.slug).map((c) => ({ path: `/jobs/in/${c.slug}`, name: c.slug === 'remote' ? 'Remote jobs' : `Jobs in ${c.name}` })),
         });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+
+// The share card for one job. The page links it with ?v=<updatedAt>, so an edit gets a fresh image past every cache.
+router.get('/og/job/:file', async (req, res, next) => {
+    try {
+        const job = await Job.findOne({ slug: req.params.file.replace(/\.png$/, '') }).select('title company workMode location salary experience type status deadline').lean();
+        if (!job) {
+            res.redirect(302, '/og-default.png');
+            return;
+        }
+        const image = jobOgImage(job, job.status !== 'open' || isExpired(job));
+        res.set('Content-Type', 'image/png');
+        res.set('Cache-Control', 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=604800');
+        res.send(Buffer.from(await image.arrayBuffer()));
     }
     catch (error) {
         next(error);

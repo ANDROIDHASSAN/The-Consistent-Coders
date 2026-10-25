@@ -209,6 +209,7 @@ test('renderJobPage injects title, JobPosting JSON-LD and crawlable body; closed
     const html = renderJobPage(shell, job);
     assert.match(html, /<title>Acme Labs hiring Remote React Developer Intern · ₹15K\/month \| The Consistent Coders<\/title>/);
     assert.equal((html.match(/<title>/g) || []).length, 1, 'old title stripped');
+    assert.match(html, new RegExp(`og:image" content="${site}/api/seo/og/job/react-developer-intern-acme-labs\\.png\\?v=\\d+"`), 'a shared link shows this job\'s own card');
     assert.match(html, /"@type":"JobPosting"/);
     assert.match(html, /"jobLocationType":"TELECOMMUTE"/);
     assert.match(html, /<h1>React Developer Intern<\/h1>/);
