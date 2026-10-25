@@ -1,14 +1,11 @@
-import { Job, Application, JOB_TYPES, WORK_MODES, EXPERIENCE_LEVELS } from './job.model.js';
+import { Job, Application, Quest, JOB_TYPES, WORK_MODES, EXPERIENCE_LEVELS } from './job.model.js';
 import { awardPoints } from '../points/points.service.js';
+import { EMAIL_RX, linkedinPost, linkedinPostDate } from './job.extract.js';
+import { CATEGORY_SLUGS, CITIES, categoryOf, isPlaceholder, skillSlug, slugify } from '../../../frontend/src/content/jobCategories.js';
 
-const slugify = (text) => text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 80);
-
-const uniqueSlug = async (title, company) => {
-    const base = slugify(`${title} ${company}`) || 'job';
+// "react-developer-intern-acme-labs-pune": role, company and city are what people search for.
+const uniqueSlug = async (title, company, location) => {
+    const base = slugify([title, company, location].filter((s) => !isPlaceholder(s)).join(' ')) || 'job';
     let slug = base;
     let n = 2;
     // ponytail: linear probe; fine until a title/company pair repeats hundreds of times.
@@ -39,6 +36,14 @@ export const parseJobInput = (body = {}) => {
             ? body.skills.map((s) => String(s).trim()).filter(Boolean).slice(0, 12)
             : String(body.skills ?? '').split(',').map((s) => s.trim()).filter(Boolean).slice(0, 12),
         deadline: body.deadline ? new Date(body.deadline) : null,
+        sourceUrl: str('sourceUrl', 500),
+        poster: {
+            name: String(body.poster?.name ?? '').trim().slice(0, 80),
+            profileUrl: String(body.poster?.profileUrl ?? '').trim().slice(0, 300),
+        },
+        companyLinkedin: str('companyLinkedin', 300).replace(/\/+$/, ''),
+        contactEmails: (Array.isArray(body.contactEmails) ? body.contactEmails : String(body.contactEmails ?? '').split(','))
+            .map((e) => String(e).trim().toLowerCase()).filter(Boolean).slice(0, 5),
     };
 
     if (data.title.length < 3) return { error: 'Title must be at least 3 characters.' };
@@ -51,8 +56,66 @@ export const parseJobInput = (body = {}) => {
     if (data.applyUrl && !isHttpUrl(data.applyUrl) && !/^mailto:/i.test(data.applyUrl)) return { error: 'Apply link must start with http(s):// or mailto:.' };
     if (data.companyUrl && !isHttpUrl(data.companyUrl)) return { error: 'Company website must start with http(s)://.' };
     if (data.deadline && Number.isNaN(data.deadline.getTime())) return { error: 'Deadline is not a valid date.' };
+    if (data.sourceUrl) {
+        const post = linkedinPost(data.sourceUrl);
+        if (!post) return { error: 'Source must be a LinkedIn post link (linkedin.com/posts/… or /feed/update/…).' };
+        data.sourceUrl = post.sourceUrl;
+    }
+    if (data.poster.profileUrl && !/^https:\/\/(?:[a-z]{2,3}\.)?linkedin\.com\/in\/[^/?#\s]+\/?$/i.test(data.poster.profileUrl)) return { error: 'Poster profile must be a linkedin.com/in/… link.' };
+    if (data.companyLinkedin && !/^https:\/\/(?:[a-z]{2,3}\.)?linkedin\.com\/company\/[^/?#\s]+$/i.test(data.companyLinkedin)) return { error: 'Company LinkedIn must be a linkedin.com/company/… link.' };
+    const badEmail = data.contactEmails.find((e) => e.replace(EMAIL_RX, '') !== '');
+    if (badEmail) return { error: `"${badEmail}" is not a valid email.` };
+    data.category = CATEGORY_SLUGS.includes(body.category) ? body.category : categoryOf(data);
 
     return { data };
+};
+
+// Guests and crawlers get this, so emails never land in Google's index.
+export const hideEmails = (text) => String(text ?? '').replace(EMAIL_RX, '[email — sign in to see]');
+
+/** Ways to reach the hiring team. Search links run on the member's own LinkedIn login; we scrape nothing. */
+export const reachOutFor = (job) => {
+    const people = (role) => (job.companyLinkedin
+        ? `${job.companyLinkedin}/people/?keywords=${encodeURIComponent(role)}`
+        : `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${role} ${job.company}`)}`);
+    return [
+        ...(job.poster?.profileUrl ? [{ kind: 'poster', label: job.poster.name || 'Post author', note: 'Wrote the post. Usually the hiring manager.', href: job.poster.profileUrl }] : []),
+        ...(job.contactEmails ?? []).map((e) => ({ kind: 'email', label: e, note: 'Shared in the post', href: `mailto:${e}` })),
+        { kind: 'search', label: 'Founders', note: `Founders at ${job.company} on LinkedIn`, href: people('founder') },
+        { kind: 'search', label: 'Recruiters & HR', note: `Recruiters at ${job.company} on LinkedIn`, href: people('recruiter') },
+        { kind: 'search', label: 'Engineering leads', note: `Engineering managers at ${job.company}`, href: people('engineering manager') },
+    ];
+};
+
+// A deadline counts through the end of its day; listings with no deadline never expire.
+const DEADLINE_GRACE_MS = 86400000;
+export const DEFAULT_LIFETIME_MS = 21 * 86400000;
+export const isExpired = (job, now = Date.now()) => Boolean(job.deadline) && new Date(job.deadline).getTime() + DEADLINE_GRACE_MS < now;
+export const openFilter = (now = Date.now()) => ({
+    status: 'open',
+    $and: [{ $or: [{ deadline: null }, { deadline: { $gte: new Date(now - DEADLINE_GRACE_MS) } }] }],
+});
+
+const insidersOf = (job, viewer) => (job.insiders ?? [])
+    .filter((i) => i.user?.name) // populated on the detail page only
+    .map((i) => ({ id: String(i.user._id), name: i.user.name, picture: i.user.picture || '', headline: i.user.headline || '', note: i.note, isMe: String(i.user._id) === String(viewer._id) }));
+
+/** Members get the reach-out kit and emails; guests get a count, so signing in has a reason. */
+const gated = (job, viewer) => {
+    const reachOut = reachOutFor(job);
+    if (viewer) {
+        return {
+            description: job.description ?? '', applyUrl: job.applyUrl, reachOut, insiders: insidersOf(job, viewer),
+            // Raw fields too, so the edit form round-trips them instead of wiping them.
+            poster: job.poster ?? { name: '', profileUrl: '' }, companyLinkedin: job.companyLinkedin ?? '', contactEmails: job.contactEmails ?? [],
+        };
+    }
+    return {
+        description: hideEmails(job.description),
+        applyUrl: /^mailto:/i.test(job.applyUrl ?? '') ? '' : job.applyUrl,
+        reachOut: null,
+        reachOutCount: reachOut.length,
+    };
 };
 
 export const toPublicJob = (job, viewer = null) => ({
@@ -67,12 +130,16 @@ export const toPublicJob = (job, viewer = null) => ({
     location: job.location,
     salary: job.salary,
     skills: job.skills,
-    description: job.description ?? '',
-    applyUrl: job.applyUrl,
+    category: job.category || categoryOf(job),
     deadline: job.deadline,
-    status: job.status,
+    sourceUrl: job.sourceUrl ?? '',
+    ...gated(job, viewer),
+    status: isExpired(job) ? 'closed' : job.status,
+    expired: isExpired(job),
     views: job.views,
     applicantsCount: job.applicantsCount,
+    huntersCount: job.huntersCount ?? 0,
+    insidersCount: job.insiders?.length ?? 0,
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
     postedBy: job.postedBy && job.postedBy.name
@@ -83,9 +150,40 @@ export const toPublicJob = (job, viewer = null) => ({
 
 const escapeRx = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-export const listJobs = async ({ q, skills, type, workMode, experience, status = 'open', page = 1, limit = 24 }) => {
-    const filter = {};
-    if (status !== 'all') filter.status = status;
+export const POSTED_DAYS = [1, 3, 7, 14];
+
+/**
+ * Company names of open jobs, keyed by URL slug, for /jobs/company/:slug and the sitemap.
+ * ponytail: distinct over open jobs per call; store a companySlug field if open jobs pass ~10k.
+ */
+export const openCompanies = async () => {
+    const names = await Job.distinct('company', openFilter());
+    // Hand-typed placeholders ("Not avaiable", "N/A", "-") are not companies either.
+    return new Map(names.filter((n) => !isPlaceholder(n)).map((n) => [slugify(n), n]));
+};
+/**
+ * Skills of open jobs, keyed by skillSlug: { name (the most used spelling), spellings, jobs }.
+ * ponytail: aggregate over open jobs per call, like openCompanies.
+ */
+export const openSkills = async () => {
+    const rows = await Job.aggregate([{ $match: openFilter() }, { $unwind: '$skills' }, { $group: { _id: '$skills', n: { $sum: 1 } } }, { $sort: { n: -1 } }]);
+    const skills = new Map();
+    for (const { _id, n } of rows) {
+        const key = skillSlug(_id);
+        if (!key) continue;
+        const s = skills.get(key) ?? { name: _id, spellings: [], jobs: 0 };
+        s.spellings.push(_id);
+        s.jobs += n;
+        skills.set(key, s);
+    }
+    return skills;
+};
+const SORTS = { new: { createdAt: -1 }, closing: { deadline: 1, createdAt: -1 } };
+
+export const listJobs = async ({ q, skills, skill, type, workMode, experience, category, posted, location, company, paid, sort, status = 'open', page = 1, limit = 24 }) => {
+    let filter = {};
+    if (status === 'open') filter = openFilter();
+    else if (status !== 'all') filter.status = status;
     const list = (v) => String(v).split(',').map((s) => s.trim()).filter(Boolean);
     if (type) filter.type = { $in: list(type) };
     if (workMode) filter.workMode = { $in: list(workMode) };
@@ -98,43 +196,83 @@ export const listJobs = async ({ q, skills, type, workMode, experience, status =
         const rx = new RegExp(escapeRx(String(q)), 'i');
         filter.$or = [{ title: rx }, { company: rx }, { skills: rx }, { location: rx }];
     }
+    if (POSTED_DAYS.includes(Number(posted))) filter.createdAt = { $gte: new Date(Date.now() - Number(posted) * 86400000) };
+    if (location) {
+        // A city page slug or any spelling of it ("bangalore" finds "Bengaluru" jobs too).
+        const want = String(location).slice(0, 60).toLowerCase();
+        const city = CITIES.find((c) => c.slug === want || c.names.some((n) => n.toLowerCase() === want));
+        if (city?.slug === 'remote') filter.workMode = 'Remote';
+        else filter.location = new RegExp((city?.names ?? [want]).map(escapeRx).join('|'), 'i');
+    }
+    let companyName = '';
+    if (company) {
+        companyName = (await openCompanies()).get(slugify(company)) ?? '';
+        if (!companyName) return { items: [], total: 0, page: 1, pages: 0, categories: {}, company: '' };
+        filter.company = companyName;
+    }
+    let skillName = '';
+    if (skill) {
+        const found = (await openSkills()).get(skillSlug(skill));
+        if (!found) return { items: [], total: 0, page: 1, pages: 0, categories: {}, skill: '' };
+        skillName = found.name;
+        filter.skills = { $in: found.spellings };
+    }
+    if (paid === '1' || paid === 'true') filter.salary = { $gt: '' };
     const safeLimit = Math.min(Math.max(Number(limit) || 24, 1), 100);
     const safePage = Math.max(Number(page) || 1, 1);
-    const [items, total] = await Promise.all([
-        Job.find(filter)
-            .sort({ createdAt: -1 })
+    // Chip counts use every filter except the category itself, so switching category never shows a dead chip.
+    const byCategory = CATEGORY_SLUGS.includes(category) ? { ...filter, category } : filter;
+    const [items, total, counts] = await Promise.all([
+        Job.find(byCategory)
+            .sort(SORTS[sort] ?? SORTS.new)
             .skip((safePage - 1) * safeLimit)
             .limit(safeLimit)
             .select('-description')
             .lean(),
-        Job.countDocuments(filter),
+        Job.countDocuments(byCategory),
+        Job.aggregate([{ $match: filter }, { $group: { _id: '$category', n: { $sum: 1 } } }]),
     ]);
-    return { items: items.map((j) => toPublicJob(j)), total, page: safePage, pages: Math.ceil(total / safeLimit) };
+    const categories = Object.fromEntries(counts.filter((c) => c._id).map((c) => [c._id, c.n]));
+    return { items: items.map((j) => toPublicJob(j)), total, page: safePage, pages: Math.ceil(total / safeLimit), categories, company: companyName, skill: skillName };
 };
 
 export const getJobBySlug = async (slug, { countView = false, viewer = null } = {}) => {
-    const job = await Job.findOne({ slug }).populate('postedBy', 'name picture').lean();
+    const job = await Job.findOne({ slug }).populate('postedBy', 'name picture').populate('insiders.user', 'name picture headline').lean();
     if (!job) return null;
     // View counter is fire-and-forget: never make the reader wait for it.
     if (countView) Job.updateOne({ _id: job._id }, { $inc: { views: 1 } }).catch(() => {});
-    const hasApplied = viewer ? await Application.exists({ job: job._id, applicant: viewer._id }) : null;
+    const [hasApplied, quest] = viewer
+        ? await Promise.all([Application.exists({ job: job._id, applicant: viewer._id }), Quest.findOne({ user: viewer._id, job: job._id }).lean()])
+        : [null, null];
     const result = toPublicJob(job, viewer);
     if (countView) result.views += 1;
-    if (viewer) result.hasApplied = Boolean(hasApplied);
+    if (viewer) {
+        result.hasApplied = Boolean(hasApplied);
+        result.quest = quest ? toQuest(quest) : null;
+    }
     return result;
 };
 
+// Owner-only: the proof link is for the member and the admins.
+export const toQuest = (q) => ({
+    id: String(q._id), stage: q.stage, stageAt: q.stageAt ?? {}, verified: q.verified || '',
+    proof: q.proof?.status ? { stage: q.proof.stage, status: q.proof.status, url: q.proof.url, note: q.proof.note ?? '' } : null,
+});
+
 export const createJob = async (user, data) => {
-    const slug = await uniqueSlug(data.title, data.company);
-    const job = await Job.create({ ...data, slug, postedBy: user._id });
+    const slug = await uniqueSlug(data.title, data.company, data.location);
+    // Job links go stale fast; an unset deadline auto-expires the listing after 21 days.
+    // A LinkedIn import is dated by the post itself, not by when it was copied here.
+    const postedAt = linkedinPostDate(data.sourceUrl);
+    const job = await Job.create({ ...data, ...(postedAt && { createdAt: postedAt }), deadline: data.deadline ?? new Date(Date.now() + DEFAULT_LIFETIME_MS), slug, postedBy: user._id });
     const reward = await awardPoints(user._id, 'job_posted', slug);
     return { job: toPublicJob({ ...job.toObject(), postedBy: user }, user), reward };
 };
 
-export const updateJob = async (job, data) => {
+export const updateJob = async (job, data, viewer = null) => {
     Object.assign(job, data);
     await job.save();
-    return toPublicJob(await job.populate('postedBy', 'name picture'));
+    return toPublicJob(await job.populate('postedBy', 'name picture'), viewer);
 };
 
 export const applyToJob = async (job, user, { note, portfolioUrl }) => {

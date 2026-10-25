@@ -1,7 +1,8 @@
 import { User } from './profile.model.js';
-import { Job, Application } from '../jobs/job.model.js';
+import { Job, Application, Quest } from '../jobs/job.model.js';
 import { PointEvent } from '../points/points.model.js';
 import { ALL_BADGES, arenasFor, badgesFor, getActivity, getStanding, rankFor, TRACKS } from '../points/points.service.js';
+import { isExpired } from '../jobs/job.service.js';
 import { learningSummary } from '../learn/learn.routes.js';
 import { Project } from '../projects/projects.routes.js';
 
@@ -26,6 +27,8 @@ export const toPublicUser = (user) => ({
     stats: {
         lessonsDone: user.lessonsDone ?? 0, pathsDone: user.pathsDone ?? 0, projectsSubmitted: user.projectsSubmitted ?? 0,
         upvotesReceived: user.upvotesReceived ?? 0, missionsDone: user.missionsDone ?? 0, reviewsGiven: user.reviewsGiven ?? 0, shortlists: user.shortlists ?? 0,
+        reachOuts: user.reachOuts ?? 0, replies: user.replies ?? 0, interviews: user.interviews ?? 0, offers: user.offers ?? 0,
+        suggestionsApproved: user.suggestionsApproved ?? 0, referralsOffered: user.referralsOffered ?? 0,
     },
     arenas: arenasFor(user),
     rank: rankFor(user.points ?? 0),
@@ -43,13 +46,14 @@ export const getDashboard = async (userId) => {
     const user = await User.findById(userId).lean();
     if (!user) return null;
 
-    const [standings, activity, projects, jobs, applications, history] = await Promise.all([
+    const [standings, activity, projects, jobs, applications, history, quests] = await Promise.all([
         standingsFor(userId),
         getActivity(userId),
         Project.find({ owner: userId }).sort({ createdAt: -1 }).select('title upvotes liveUrl repoUrl createdAt').lean(),
         Job.find({ postedBy: userId }).sort({ createdAt: -1 }).select('slug title company status applicantsCount views createdAt').lean(),
         Application.find({ applicant: userId }).sort({ createdAt: -1 }).populate('job', 'slug title company status').lean(),
         PointEvent.find({ user: userId }).sort({ createdAt: -1 }).limit(20).lean(),
+        Quest.find({ user: userId }).sort({ updatedAt: -1 }).limit(100).populate('job', 'slug title company status deadline').lean(),
     ]);
 
     return {
@@ -64,6 +68,9 @@ export const getDashboard = async (userId) => {
         applications: applications
             .filter((a) => a.job)
             .map((a) => ({ id: String(a._id), status: a.status, createdAt: a.createdAt, job: a.job })),
+        quests: quests
+            .filter((q) => q.job)
+            .map((q) => ({ id: String(q._id), stage: q.stage, verified: q.verified || '', proofStatus: q.proof?.status || '', updatedAt: q.updatedAt, job: { ...q.job, status: isExpired(q.job) ? 'closed' : q.job.status } })),
         history: history.map((h) => ({ type: h.type, points: h.points, ref: h.ref, at: h.createdAt })),
     };
 };

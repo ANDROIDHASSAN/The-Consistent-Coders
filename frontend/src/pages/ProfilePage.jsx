@@ -10,6 +10,7 @@ import { CLERK_ENABLED, useSession } from '../lib/auth';
 import { useGame } from '../context/GameContext';
 import { startTour } from '../components/NavTour';
 import { ArenaCards, BadgeCabinet, Heatmap } from '../components/Gamification';
+import { QUEST_STEPS } from '../lib/jobs';
 
 const EVENT_LABELS = {
     job_posted: 'Posted a job',
@@ -24,6 +25,13 @@ const EVENT_LABELS = {
     first_applicant: '📣 First applicant on your job',
     applicant_reviewed: '📣 Reviewed an applicant',
     shortlisted: '🎯 Got shortlisted',
+    reached_out: '👋 Reached out for a job',
+    early_bird: '🐦 Early bird bonus',
+    got_reply: '💬 Got a reply',
+    got_interview: '🎤 Landed an interview',
+    got_offer: '🏅 Verified offer',
+    job_suggested: '🛰️ Your job suggestion went live',
+    insider_referral: '🤝 Offered referrals',
 };
 
 export const ProfilePage = () => {
@@ -104,14 +112,15 @@ export const ProfilePage = () => {
         );
     }
 
-    const { user, jobs, applications, history, standings, activity, projects = [], allBadges = [] } = me;
+    const { user, jobs, applications, history, standings, activity, projects = [], allBadges = [], quests = [] } = me;
     const checklist = (() => {
         const items = [
             { label: 'Add a headline', done: Boolean(user.headline), to: '#edit-profile', reward: '+1 pt' },
             { label: 'Add your skills', done: user.skills?.length > 0, to: '#edit-profile', reward: 'better matches' },
             { label: 'Link your GitHub or portfolio', done: Boolean(user.links.github || user.links.portfolio), to: '#edit-profile', reward: 'get noticed' },
             { label: 'Apply to your first job', done: user.applicationsSent > 0, to: '/jobs', reward: '+1 pt' },
-            { label: 'Post a job you know about', done: user.jobsPosted > 0, to: '/jobs/new', reward: '+1 pt' },
+            { label: 'Start a job quest: reach out for a role', done: (user.stats.reachOuts ?? 0) > 0, to: '/jobs', reward: '+1 pt' },
+            { label: 'Suggest a job you know about', done: (user.stats.suggestionsApproved ?? 0) > 0 || user.jobsPosted > 0, to: '/jobs#suggest', reward: '+2 pts' },
             { label: 'Tick off your first learning checkpoint', done: user.stats.lessonsDone > 0, to: '/learn', reward: '+1 pt' },
             { label: 'Ship a project', done: user.stats.projectsSubmitted > 0, to: '/projects', reward: '+3 pts' },
             { label: 'Come back 3 days in a row', done: user.streak >= 3, to: '/leaderboard', reward: '⚡ badge' },
@@ -215,9 +224,30 @@ export const ProfilePage = () => {
                         )}
                     </section>
 
+                    <section className="section-gap" aria-labelledby="my-quests">
+                        <h2 id="my-quests" className="h2">Your job quests</h2>
+                        <div className="quest-board">
+                            {QUEST_STEPS.map((s) => {
+                                const inStage = quests.filter((q) => q.stage === s.id);
+                                return (
+                                    <div key={s.id} className="quest-col">
+                                        <h3>{s.icon} {s.label} <small>{inStage.length}</small></h3>
+                                        {inStage.map((q) => (
+                                            <Link key={q.id} to={`/jobs/${q.job.slug}`} className="quest-card">
+                                                <b>{q.job.title}</b>
+                                                <small>{q.job.company}{q.job.status !== 'open' ? ' · closed' : ''}{q.proofStatus === 'pending' ? ' · verifying' : q.proofStatus === 'rejected' ? ' · proof rejected' : q.verified === q.stage ? ' · ✓ verified' : ''}</small>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        {quests.length === 0 && <p className="empty">No quests yet. Open any <Link to="/jobs">job</Link> and tap Saved or Reached out to start one.</p>}
+                    </section>
+
                     <div className="dash-grid">
-                        <section aria-labelledby="my-jobs">
-                            <h2 id="my-jobs" className="h2">Jobs you posted <Link to="/jobs/new" className="btn-ghost btn-sm" style={{ marginLeft: '0.75rem', verticalAlign: 'middle' }}>+ New</Link></h2>
+                        {(me.isAdmin || jobs.length > 0) && <section aria-labelledby="my-jobs">
+                            <h2 id="my-jobs" className="h2">Jobs you posted {me.isAdmin && <Link to="/jobs/new" className="btn-ghost btn-sm" style={{ marginLeft: '0.75rem', verticalAlign: 'middle' }}>+ New</Link>}</h2>
                             {jobs.length === 0 ? <p className="empty">No jobs yet. <Link to="/jobs/new">Post one (+1 pt)</Link></p> : (
                                 <div className="list">
                                     {jobs.map((j) => (
@@ -231,7 +261,7 @@ export const ProfilePage = () => {
                                     ))}
                                 </div>
                             )}
-                        </section>
+                        </section>}
 
                         <section aria-labelledby="my-apps">
                             <h2 id="my-apps" className="h2">Your applications</h2>

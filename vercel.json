@@ -25,6 +25,10 @@
       "destination": "/api"
     },
     {
+      "source": "/jobs/:kind(company|in|skill)/:slug",
+      "destination": "/api"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/200.html"
     }

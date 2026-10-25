@@ -43,6 +43,10 @@ export const AppRoutes = () => (
     <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/jobs" element={<JobsPage />} />
+        <Route path="/jobs/category/:category" element={<JobsPage />} />
+        <Route path="/jobs/company/:company" element={<JobsPage />} />
+        <Route path="/jobs/in/:city" element={<JobsPage />} />
+        <Route path="/jobs/skill/:skill" element={<JobsPage />} />
         <Route path="/jobs/new" element={<PostJobPage />} />
         <Route path="/jobs/:slug" element={<JobDetailPage />} />
         <Route path="/jobs/:slug/edit" element={<PostJobPage />} />

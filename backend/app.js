@@ -47,6 +47,9 @@ else {
 app.use((req, _res, next) => {
     if (req.path === '/sitemap.xml') req.url = '/api/seo/sitemap.xml';
     else if (/^\/jobs\/(?!new$)[^/]+$/.test(req.path)) req.url = `/api/seo/render/job/${req.path.slice('/jobs/'.length)}`;
+    else if (/^\/jobs\/company\/[^/]+$/.test(req.path)) req.url = `/api/seo/render/company/${req.path.slice('/jobs/company/'.length)}`;
+    else if (/^\/jobs\/in\/[^/]+$/.test(req.path)) req.url = `/api/seo/render/city/${req.path.slice('/jobs/in/'.length)}`;
+    else if (/^\/jobs\/skill\/[^/]+$/.test(req.path)) req.url = `/api/seo/render/skill/${req.path.slice('/jobs/skill/'.length)}`;
     next();
 });
 app.use('/api', apiRoutes);

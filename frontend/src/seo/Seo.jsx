@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect } from 'react';
+import { jobPostingSchema as sharedJobPostingSchema } from '../content/jobSchema';
 
 export const SITE_URL = (import.meta.env.VITE_SITE_URL || 'https://www.consistentcoders.com').replace(/\/$/, '');
 export const SITE_NAME = 'The Consistent Coders';
@@ -142,29 +143,4 @@ export const articleSchema = (post) => ({
     image: DEFAULT_IMAGE,
 });
 
-export const jobPostingSchema = (job) => {
-    const employmentType = {
-        'Full-time': 'FULL_TIME', 'Part-time': 'PART_TIME', Internship: 'INTERN', Contract: 'CONTRACTOR', Freelance: 'CONTRACTOR',
-    }[job.type] ?? 'OTHER';
-    const schema = {
-        '@context': 'https://schema.org',
-        '@type': 'JobPosting',
-        title: job.title,
-        description: `<p>${escape(job.description).replace(/\n+/g, '</p><p>')}</p>`,
-        datePosted: new Date(job.createdAt).toISOString(),
-        employmentType,
-        hiringOrganization: { '@type': 'Organization', name: job.company, ...(job.companyUrl ? { sameAs: job.companyUrl } : {}) },
-        jobLocation: { '@type': 'Place', address: { '@type': 'PostalAddress', addressLocality: job.location, addressCountry: 'IN' } },
-        directApply: !job.applyUrl,
-        url: `${SITE_URL}/jobs/${job.slug}`,
-        identifier: { '@type': 'PropertyValue', name: SITE_NAME, value: job.slug },
-    };
-    if (job.workMode === 'Remote') {
-        schema.jobLocationType = 'TELECOMMUTE';
-        schema.applicantLocationRequirements = { '@type': 'Country', name: 'India' };
-    }
-    if (job.deadline) schema.validThrough = new Date(job.deadline).toISOString();
-    if (job.skills?.length) schema.skills = job.skills.join(', ');
-    if (job.salary) schema.baseSalary = { '@type': 'MonetaryAmount', currency: 'INR', value: { '@type': 'QuantitativeValue', value: job.salary } };
-    return schema;
-};
+export const jobPostingSchema = (job) => sharedJobPostingSchema(job, SITE_URL, SITE_NAME);

@@ -1,11 +1,16 @@
+import mongoose from 'mongoose';
 import { Job, Application, JOB_TYPES, WORK_MODES, EXPERIENCE_LEVELS } from './job.model.js';
 import {
-    applyToJob, createJob, getJobBySlug, listApplicants, listJobs, parseJobInput, updateJob,
+    applyToJob, createJob, getJobBySlug, isExpired, listApplicants, listJobs, parseJobInput, updateJob,
 } from './job.service.js';
+import { approveSuggestion } from './job.quest.js';
 import { awardPoints } from '../points/points.service.js';
 import { extractJobFromText, extractJobFromUrl } from './job.extract.js';
+import { categoryOf } from '../../../frontend/src/content/jobCategories.js';
 
 const fail = (res, status, message) => res.status(status).json({ success: false, message });
+const isDuplicatePost = (error) => error?.code === 11000 && Boolean(error.keyPattern?.sourceUrl);
+const DUPLICATE_POST = 'That LinkedIn post is already on the job board.';
 
 export const getJobOptions = (req, res) => {
     res.json({ success: true, types: JOB_TYPES, workModes: WORK_MODES, experience: EXPERIENCE_LEVELS });
@@ -18,6 +23,9 @@ export const extractJob = async (req, res, next) => {
         const url = String(req.body?.url ?? '').trim() || (/^https?:\/\/\S+$/i.test(text) ? text : '');
         if (!url && text.length < 20) return fail(res, 400, 'Paste the job post text or a link first.');
         const draft = url ? await extractJobFromUrl(url) : extractJobFromText(text);
+        draft.category = categoryOf(draft);
+        // Warn before the poster fills the form, not after they hit publish.
+        if (draft.sourceUrl) draft.duplicateOf = (await Job.findOne({ sourceUrl: draft.sourceUrl }).select('slug').lean())?.slug ?? null;
         res.json({ success: true, draft });
     }
     catch (error) {
@@ -52,12 +60,16 @@ export const getJob = async (req, res, next) => {
 
 export const postJob = async (req, res, next) => {
     try {
+        // Admins curate the board; members feed it through suggestions (+2 when listed).
+        if (!req.isAdmin) return fail(res, 403, 'Only admins post jobs. Use "Suggest a job" on the jobs page and earn +2 when it goes live.');
         const { data, error } = parseJobInput(req.body);
         if (error) return fail(res, 400, error);
         const { job, reward } = await createJob(req.user, data);
+        if (req.body?.suggestionId && mongoose.isValidObjectId(req.body.suggestionId)) await approveSuggestion(req.body.suggestionId, job.slug);
         res.status(201).json({ success: true, job, reward });
     }
     catch (error) {
+        if (isDuplicatePost(error)) return fail(res, 409, DUPLICATE_POST);
         next(error);
     }
 };
@@ -91,10 +103,11 @@ export const patchJob = async (req, res, next) => {
 
         const { data, error } = parseJobInput(req.body);
         if (error) return fail(res, 400, error);
-        const updated = await updateJob(job, data);
+        const updated = await updateJob(job, data, req.user);
         res.json({ success: true, job: updated });
     }
     catch (error) {
+        if (isDuplicatePost(error)) return fail(res, 409, DUPLICATE_POST);
         next(error);
     }
 };
@@ -115,7 +128,7 @@ export const apply = async (req, res, next) => {
     try {
         const job = await Job.findById(req.params.id).lean();
         if (!job) return fail(res, 404, 'Job not found.');
-        if (job.status !== 'open') return fail(res, 400, 'This job is closed.');
+        if (job.status !== 'open' || isExpired(job)) return fail(res, 400, 'This job is closed.');
         if (String(job.postedBy) === String(req.user._id)) return fail(res, 400, 'You cannot apply to your own job.');
 
         const note = String(req.body?.note ?? '').trim().slice(0, 2000);
