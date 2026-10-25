@@ -94,6 +94,7 @@ export const renderJobPage = (shell, rawJob, related = []) => {
 
     return injectPage(shell, {
         title, description, url, type: 'article', noindex: closed,
+        image: { url: `${env.siteUrl}/api/seo/og/job/${encodeURIComponent(job.slug)}.png?v=${new Date(job.updatedAt ?? 0).getTime()}`, alt: jobHeadline(job) },
         jsonLd: closed || !hasFullDescription(job) ? [breadcrumbs] : [jobPostingSchema(job, env.siteUrl, 'The Consistent Coders'), breadcrumbs],
         body,
     });
@@ -102,7 +103,7 @@ export const renderJobPage = (shell, rawJob, related = []) => {
 const companyLink = (name) => (isPlaceholder(name) ? escapeHtml(name) :`<a href="/jobs/company/${slugify(name)}">${escapeHtml(name)}</a>`);
 
 /** Writes head tags and the crawler body into the SPA shell. */
-const injectPage = (shell, { title, description, url, type = 'website', noindex = false, jsonLd, body }) => {
+const injectPage = (shell, { title, description, url, type = 'website', noindex = false, jsonLd, body, image = { url: `${env.siteUrl}/og-default.png`, alt: 'The Consistent Coders' } }) => {
     const head = `
     <title>${escapeHtml(title)}</title>
     <meta name="description" content="${escapeHtml(description)}" />
@@ -113,11 +114,14 @@ const injectPage = (shell, { title, description, url, type = 'website', noindex 
     <meta property="og:title" content="${escapeHtml(title)}" />
     <meta property="og:description" content="${escapeHtml(description)}" />
     <meta property="og:url" content="${escapeHtml(url)}" />
-    <meta property="og:image" content="${env.siteUrl}/og-default.png" />
+    <meta property="og:image" content="${escapeHtml(image.url)}" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="${escapeHtml(image.alt)}" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${escapeHtml(title)}" />
     <meta name="twitter:description" content="${escapeHtml(description)}" />
-    <meta name="twitter:image" content="${env.siteUrl}/og-default.png" />
+    <meta name="twitter:image" content="${escapeHtml(image.url)}" />
     ${jsonLd.map((o) => `<script type="application/ld+json">${safeJson(o)}</script>`).join('\n    ')}
     `;
     return stripSeoTags(shell)
